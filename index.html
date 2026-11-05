@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo y pedidos v1.8 · Sodexo</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f2f1f6; --surface:#ffffff; --soft:#f6f6fa; --border:#e2e1ea;
+  --text:#26212b; --muted:#6d6978; --purple:#6b009a; --red:#e50033; --redbar:#f10033;
+  --ok:#00ae62; --warn:#b26b00;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,Arial,sans-serif;margin:0;font-size:15px;}
+.topbar{height:4px;background:var(--redbar);}
+.app-header{display:flex;align-items:center;gap:16px;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);}
+.app-header img{height:46px;width:auto;display:block;}
+.divider{width:1px;height:34px;background:var(--border);}
+.app-header-text strong{display:block;font-size:17px;font-weight:700;}
+.app-header-text span{display:block;font-size:13px;color:var(--muted);}
+.wrap{max-width:1180px;margin:0 auto;padding:26px 24px 70px;}
+.titlebar{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px;}
+h1{margin:0 0 4px;font-size:28px;font-weight:700;}
+h1 em{font-style:normal;color:var(--purple);}
+.lead{color:var(--muted);font-size:15px;}
+.status{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 16px;}
+.status .d{width:10px;height:10px;border-radius:50%;background:var(--warn);flex:none;}
+.status .d.on{background:var(--ok);}
+.status b{display:block;font-weight:500;font-size:15px;}
+.status span{font-size:12.5px;color:var(--muted);}
+label.l{display:block;font-size:13.5px;color:var(--muted);margin-bottom:6px;}
+select,input[type=text],input[type=number]{background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:15px;font-family:inherit;}
+select{min-width:300px;}
+select:focus,input:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(107,0,154,.15);}
+button{font-family:inherit;font-size:14.5px;font-weight:600;border-radius:9px;padding:10px 18px;cursor:pointer;border:1px solid var(--border);background:var(--soft);color:var(--text);}
+button:hover{border-color:var(--purple);}
+button.pur{background:var(--purple);border-color:var(--purple);color:#fff;}
+button.pur:hover{filter:brightness(1.12);}
+button.red{background:var(--red);border-color:var(--red);color:#fff;font-size:16px;padding:12px 28px;}
+button.red:disabled{background:#f29db2;border-color:#f29db2;cursor:not-allowed;}
+button.x{width:34px;height:34px;padding:0;font-size:18px;line-height:1;color:var(--muted);}
+.grid{display:grid;grid-template-columns:minmax(260px,2.3fr) 130px 70px minmax(150px,1.2fr) 110px 110px 44px;gap:12px;align-items:center;}
+.th{font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;padding:0 13px 10px;margin-top:22px;}
+.grid.srch{grid-template-columns:minmax(0,1fr) 44px;grid-template-areas:none;}
+.empty{border:1px dashed var(--border);border-radius:12px;text-align:center;color:var(--muted);padding:26px 12px;}
+.item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+.item .pn{font-weight:600;cursor:pointer;}
+.item .pn:hover{color:var(--purple);}
+.cod{font-family:Consolas,monospace;font-size:13px;color:var(--muted);}
+.und{color:var(--muted);font-size:14px;}
+.pv{font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:#efe3f6;color:var(--purple);display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sp{color:var(--warn);font-size:13.5px;font-weight:600;}
+.qty{width:90px;text-align:center;padding:8px;}
+.money{font-weight:600;}
+.sb{position:relative;}
+.sb input{width:100%;}
+.dd{position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 24px rgba(38,33,43,.14);max-height:340px;overflow:auto;}
+.opt{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 12px;padding:9px 14px;cursor:pointer;border-top:1px solid var(--border);}
+.opt:first-child{border-top:none;}
+.opt.on,.opt:hover{background:#f4eaf9;}
+.opt .t{font-weight:600;font-size:14px;}
+.opt .m{font-size:12.5px;color:var(--muted);}
+.opt .p{grid-row:1/3;grid-column:2;align-self:center;font-weight:600;font-size:14px;}
+.dd .none{padding:14px;color:var(--muted);font-size:14px;}
+mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
+.foot2{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-top:18px;}
+.tot{font-size:20px;}
+.tot b{color:var(--purple);font-weight:600;}
+.acts{display:flex;gap:12px;align-items:center;margin-top:20px;flex-wrap:wrap;}
+.hint{font-size:13.5px;color:var(--muted);margin-top:10px;min-height:18px;}
+.hint.w{color:var(--warn);}
+.src{font-size:12.5px;color:var(--muted);margin-top:30px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:16px;}
+.card h2{margin:0 0 4px;font-size:18px;}
+.arow{display:grid;grid-template-columns:120px minmax(0,1fr) 60px 170px 100px 80px;gap:12px;align-items:center;padding:10px 4px;border-top:1px solid var(--border);}
+.arow.ah{border-top:none;font-size:12.5px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;}
+.ov{position:fixed;inset:0;background:rgba(38,33,43,.45);display:none;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.ov.on{display:flex;}
+.modal{background:var(--surface);border-radius:14px;padding:22px 24px;width:100%;max-width:520px;max-height:92vh;overflow:auto;}
+.modal h3{margin:0 0 4px;font-size:19px;}
+.modal .f{margin-top:14px;}
+.modal input{width:100%;}
+.err{color:var(--red);font-size:13.5px;margin-top:10px;min-height:18px;}
+.mact{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;}
+.amsg{font-size:13.5px;color:var(--ok);min-height:18px;margin-top:8px;}
+.two{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px;}
+.two>div{flex:0 1 auto;}
+.two select{min-width:300px;}
+.bud{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 20px;max-width:700px;margin-top:18px;}
+.bud .top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap;}
+.bud .top b{font-size:17px;}
+.bud .top span{font-size:14px;color:var(--muted);}
+.bar{height:10px;background:#eceaf1;border-radius:999px;margin:12px 0 10px;overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--purple);border-radius:999px;}
+.bar i.w{background:#e3a63c;} .bar i.o{background:var(--red);}
+.bud .m{font-size:14px;color:var(--muted);} .bud .m.w{color:var(--warn);} .bud .m.o{color:var(--red);}
+.tabs{display:flex;gap:8px;margin:6px 0 16px;}
+.tab.on{background:var(--purple);border-color:var(--purple);color:#fff;}
+.arow.a5{grid-template-columns:150px minmax(0,1fr) 130px 140px 80px;}
+.hint.ok{color:var(--ok);}
+.modal textarea{width:100%;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:11px 14px;font-size:15px;font-family:inherit;resize:vertical;}
+.modal textarea:focus{outline:none;border-color:var(--purple);box-shadow:0 0 0 3px rgba(107,0,154,.15);}
+.modal input[type=checkbox]{width:auto;}
+.chk{display:flex;align-items:center;gap:8px;font-size:15px;cursor:pointer;}
+@media (max-width:800px){
+  .two>div{flex:1 1 100%;} .two select{min-width:0;width:100%;}
+  .arow.a5{grid-template-columns:minmax(0,1fr) auto;}
+  .arow{grid-template-columns:minmax(0,1fr) auto;} .arow.ah{display:none;}
+  .app-header{padding:10px 14px;} .app-header img{height:38px;}
+  .wrap{padding:18px 12px 60px;} h1{font-size:23px;}
+  select{min-width:0;width:100%;}
+  .th{display:none;}
+  .grid{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"p x" "c u" "v m" "q t";row-gap:8px;}
+  .grid.srch{grid-template-areas:none;}
+  .g-p{grid-area:p;} .g-c{grid-area:c;} .g-u{grid-area:u;} .g-v{grid-area:v;} .g-m{grid-area:m;text-align:right;} .g-q{grid-area:q;} .g-t{grid-area:t;text-align:right;} .g-x{grid-area:x;}
+}
+
+.pvc{border:1px solid var(--border);border-radius:12px;padding:12px;margin:10px 0;display:flex;gap:12px;background:var(--surface);}
+.pvc img{width:84px;height:84px;object-fit:cover;border-radius:8px;background:var(--soft);flex:none;}
+.pvt{display:inline-block;font-size:11px;padding:2px 8px;border-radius:10px;background:var(--soft);color:var(--muted);margin:0 4px 4px 0;}
+.pvi{margin-top:16px;padding-top:8px;border-top:2px solid var(--purple);}
+.pva{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.pva a{text-decoration:none;padding:8px 12px;border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="topbar"></div>
+<header class="app-header">
+  <img id="logo" alt="Sodexo">
+  <div class="divider"></div>
+  <div class="app-header-text"><strong>Catálogo y pedidos</strong><span id="ver"></span></div>
+  <button id="adminBtn" style="margin-left:auto">Modo Administrador</button>
+</header>
+
+<div class="wrap" id="main">
+  <div class="titlebar">
+    <div>
+      <h1>Pedido de <em>material</em></h1>
+      <div class="lead">Busca en el catálogo, agrega tus ítems y exporta tu pedido.</div>
+    </div>
+    <div class="status"><span class="d" id="dot"></span><div><b id="st1"></b><span id="st2"></span></div></div>
+  </div>
+
+  <div class="two">
+    <div><label class="l" for="tipo">Tipo de pedido</label><select id="tipo"></select></div>
+    <div><label class="l" for="area">Área</label><select id="area"></select></div>
+    <div><label class="l" for="resp">Responsable de área</label><select id="resp"></select></div>
+  </div>
+  <label class="l" for="pf">Filtrar por proveedor</label>
+  <select id="pf"></select>
+  <div class="bud" id="bud" style="display:none"><div class="top"><b id="budT"></b><span id="budN"></span></div><div class="bar"><i id="budF"></i></div><div class="m" id="budM"></div></div>
+
+  <div class="grid th"><span>Producto</span><span>Código</span><span>Unidad</span><span>Proveedor</span><span>Precio sin IGV</span><span>Cantidad</span><span></span></div>
+  <div id="items"></div>
+
+  <div class="foot2">
+    <button class="pur" id="add">+ Agregar ítem</button>
+    <div class="tot">Total de ítems: <b id="nit">0</b> &nbsp;·&nbsp; Total: <b id="tot">S/ 0.00</b></div>
+  </div>
+
+  <div class="acts">
+    <button class="red" id="reg" disabled>Registrar pedido</button>
+    <button id="clr">Limpiar pantalla</button>
+  </div>
+  <div class="hint" id="hint"></div>
+  <div class="src" id="src"></div>
+</div>
+
+<div class="wrap" id="admin" style="display:none">
+  <button id="admBack">← Volver al pedido</button>
+  <div class="titlebar" style="margin-top:18px">
+    <div><h1>Modo <em>Administrador</em></h1><div class="lead">Busca un producto para editar su precio y sus datos.</div></div>
+    <button id="admOut">Salir del modo administrador</button>
+  </div>
+  <div class="tabs"><button class="tab on" data-tab="prod">Productos</button><button class="tab" data-tab="areas">Áreas</button></div>
+  <div id="tabProd">
+  <div class="card">
+    <h2>Productos</h2>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;margin:12px 0 6px">
+      <input type="text" id="asq" placeholder="Escribe código, producto o proveedor" style="flex:1;min-width:240px" autocomplete="off" aria-label="Buscar producto">
+      <button class="pur" id="aNew">+ Nuevo producto</button>
+      <button id="aProv">🔎 Buscar proveedores</button>
+    </div>
+    <div class="amsg" id="amsg"></div>
+    <div class="arow ah"><span>Código</span><span>Producto</span><span>Unidad</span><span>Proveedor</span><span>Precio</span><span></span></div>
+    <div id="alist"></div>
+    <div class="hint" id="acnt"></div>
+  </div>
+  </div>
+  <div id="tabAreas" style="display:none">
+    <div class="card">
+      <h2>Áreas y presupuesto</h2>
+      <div class="lead" style="font-size:14px">Responsable y tope mensual de cada área. El gasto se reinicia cada mes.</div>
+      <div style="margin:12px 0 6px"><button class="pur" id="arNew">+ Nueva área</button></div>
+      <div class="amsg" id="armsg"></div>
+      <div class="arow a5 ah"><span>Área</span><span>Responsable</span><span>Tope mensual</span><span>Gastado este mes</span><span></span></div>
+      <div id="arList"></div>
+    </div>
+    <div class="card">
+      <h2>Artículos de oficina</h2>
+      <div class="lead" style="font-size:14px">Tope mensual compartido por todas las áreas. Solo se piden productos de DIMERC.</div>
+      <div style="display:flex;gap:12px;align-items:center;margin-top:12px;flex-wrap:wrap"><label class="l" for="ofTop" style="margin:0">Tope mensual (S/)</label><input type="text" id="ofTop" inputmode="decimal" style="width:140px" autocomplete="off"><button class="pur" id="ofSave">Guardar</button></div>
+      <div class="amsg" id="ofmsg"></div>
+      <div class="hint" id="ofgas"></div>
+    </div>
+    <div class="card">
+      <h2>Pedidos registrados este mes</h2>
+      <div id="hList"></div>
+    </div>
+  </div>
+</div>
+
+<div class="ov" id="mArea"><div class="modal">
+  <h3 id="arTit">Editar área</h3>
+  <div class="f"><label class="l" for="arNom">Nombre del área</label><input type="text" id="arNom" autocomplete="off"></div>
+  <div class="f"><label class="l" for="arRes">Responsables (uno por línea)</label><textarea id="arRes" rows="4" placeholder="Un nombre por línea"></textarea></div>
+  <div class="f"><label class="chk"><input type="checkbox" id="arPrev"> Puede pedir Preventivo</label></div>
+  <div class="f" id="arTopW"><label class="l" for="arTop">Tope mensual de preventivo (S/)</label><input type="text" id="arTop" inputmode="decimal" placeholder="Vacío = sin tope" autocomplete="off"></div>
+  <div class="err" id="arErr"></div>
+  <div class="mact"><button id="arCancel">Cancelar</button><button class="pur" id="arSave">Guardar</button></div>
+</div></div>
+
+<div class="ov" id="mPin"><div class="modal">
+  <h3>Acceso al panel de administrador</h3>
+  <div class="lead" style="font-size:14px">Ingresa tu PIN.</div>
+  <div class="f"><input type="password" id="pinIn" inputmode="numeric" maxlength="4" placeholder="PIN" autocomplete="off" aria-label="PIN"></div>
+  <div class="err" id="pinErr"></div>
+  <div class="mact"><button id="pinCancel">Cancelar</button><button class="pur" id="pinOk">Ingresar</button></div>
+</div></div>
+
+<div class="ov" id="mProd"><div class="modal">
+  <h3 id="pfTit">Editar producto</h3>
+  <div class="f"><label class="l" for="pfCod">Código</label><input type="text" id="pfCod" autocomplete="off"></div>
+  <div class="f"><label class="l" for="pfNom">Producto</label><input type="text" id="pfNom" autocomplete="off"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="f"><label class="l" for="pfUni">Unidad</label><input type="text" id="pfUni" autocomplete="off"></div>
+    <div class="f"><label class="l" for="pfPre">Precio sin IGV (S/)</label><input type="text" id="pfPre" inputmode="decimal" placeholder="Vacío = sin precio" autocomplete="off"></div>
+  </div>
+  <div class="f"><label class="l" for="pfPrv">Proveedor</label><input type="text" id="pfPrv" list="prvList" autocomplete="off"><datalist id="prvList"></datalist></div>
+  <div class="err" id="pfErr"></div>
+  <div class="mact"><button id="pfCancel">Cancelar</button><button class="pur" id="pfSave">Guardar</button></div>
+</div></div>
+
+<div class="ov" id="mPv"><div class="modal" style="max-width:920px">
+  <h3>Buscar proveedores</h3>
+  <div class="f"><label class="l" for="pvItems">Ítems a buscar (uno por línea)</label><textarea id="pvItems" rows="3" placeholder="filtro G4 592x592&#10;correa B-52"></textarea></div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center"><input type="text" id="pvCiudad" value="Lima, Perú" style="flex:1;min-width:200px" aria-label="Ciudad"><button class="pur" id="pvGo">Buscar</button><button id="pvClose">Cerrar</button></div>
+  <div class="amsg" id="pvMsg"></div>
+  <div id="pvOut"></div>
+  <div class="f" style="margin-top:14px"><label class="l" for="pvTxt">Mensaje para el proveedor homologado (se copia al portapapeles)</label><textarea id="pvTxt" rows="6"></textarea></div>
+  <h3 style="margin-top:18px">Mis proveedores</h3>
+  <div id="pvSaved"></div>
+</div></div>
+
+<script>
+var VERSION='v1.8';
+var SB_URL='https://zevbmpkomkugnzokukef.supabase.co';
+var SB_KEY='sb_publishable_W10NCifkuqjvxJJv_EwivA_5iEc5Alx';
+var LOGO='data:image/png;base64,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';
+var SNAP={"p":["COMERCIALIZADORA ABYSEM SAC","DIMERC PERU S.A.C.","INGENIERIA E INFRAESTRUCTURA INDUSTRIAL E.I.R.L.","PROSAC","REFRIWORLD PERU S.A.C.","SOCIEDAD DISTRIBUIDORA FERRETERA S.A.C"],"i":[["0C158935","LOCTITE SF 7808 PROTECTOR DE CORREAS 220 ML","UND",0,null],["0C158925","PINTURA SPRAY ABRO 035C COLOR AZUL ROYAL","UND",0,null],["0C158938","TORNILLO AUTOPERFORANTE HEXAGONAL 10X1\"","UND",0,null],["0C158939","TORNILLO AUTOPERFORANTE HEXAGONALDE 8X1\"","UND",0,null],["0C158936","TORNILLO AUTORROSCANTE CABEZA PAN MIXTA 8 X 1/2\"","UND",0,null],["0C158937","TORNILLO AUTORROSCANTE CABEZA PAN MIXTA 10 X 1/2\"","UND",0,null],["100705163006","DISOLVENTE DIELECTRICO BIODIELECTRIC -60 (5GLN)","BLD",0,null],["0C189042","LLAVE ALLEN TORX LARGAS T10-T50 (9PZS)","JGO",0,null],["0C161699","MASILLA PLASTICA 1/4 BONFLEX + CATALIZADOR BONFLEX (LATA X 500GR) LCL07.05","UND",0,null],["0C163487","PINTURA SPRAY ABRO COLOR GRIS / PLATEADO BRILLANTE-LCL 27.05","UND",0,null],["10070583459","PINTURA SPRAY ABRO COLOR MARFIL","UND",0,null],["0C136448","SIKAFLEX 11FC BLANCO 300ML SIKA R 28.04","UND",0,null],["0C190492","FORMADOR DE EMPAQUETADURA ADEX 3H T/AVIACION FRASCO A43GR","UND",0,null],["0C190495","NIPLE F° NEGRO DE 3/4 X 3\" ROSCADO","UND",0,null],["0C190860","TRANSFORMADOR DE OXIDO RC-500 CHEM TOOLS","UND",0,null],["100601114479","ARANDELA PLANA ZINCADA DE 1/2\"","UND",0,null],["10100180177","PERNO TIPO HILTI DE 1/2\" X 3\"","UND",0,null],["0C182144","CONTACTOR LC1D12M7 12A 1NA+1NC BOB-220V.50/60HZ - SCHNEIDER","UND",0,null],["0C191850","CONTACTOR TESYS LC1D09M7 9A 1NA+1NC - SCHNEIDER","UND",0,null],["0C191854","SELECTOR MODULAR MANETA CORTA 2POSIC. 0-1, 1NA M2SS2-10BKA - ABB","UND",0,null],["0C191853","TRANSFORMADOR MONOF.200VA 440/220V BORNERAS AUDAX","MT",0,null],["0C191764","BASE PARA RELE DE 8 PINES RUZC2M - SCHNEIDER","UND",0,null],["0C191766","BLOQUE CONTACTO NA - MCB-10 - ABB","UND",0,null],["0C191762","CONTACTOR LC1D18M7 3P 18AMP 220V - SCHNEIDER","UND",0,null],["0C191763","RELE ENCHUFABLE 8 PINES 230VAC 10A 2NANC ZELIO RUMC21P7 - SCHNEIDER","UND",0,null],["0C191765","SELECTOR MODULAR MANETA CORTA 2POSIC. 0-1, 1NA MZSS2-10BKA - ABB","UND",0,null],["0C191768","TERMINAL HEMBRA AZUL T/BANDERA 16-14 AWG","UND",0,null],["0C191767","TRANSFORMADOR MONOF.100VA 440/220V BORNERAS - AUDAX","UND",0,null],["10435","AGUA DESTILADA PARA BATERIAS","UND",0,null],["0C131923","CANDADO 30MM TRAVEX R.1602","UND",0,null],["101001116213","CORTINA DE BAÑO PEVA COPOS 1.80X1.80MT","UND",0,null],["0C188548","CABLE ACERO GALV. TIPO BOA A/A 1/8\" 7X7 LCL 24.07.25","MT",0,null],["0C188550","CABLE ACERO GALV. TIPO BOA A/A 3/16\" 6X19 LCL 24.07.25","MT",0,null],["0C188549","GRAPA FORJADO G450 1/8\" SLR LCL 24.07.25","UND",0,null],["0C188551","GRAPA FORJADO G450 3/16\"SLR LCL 24.07.25","UND",0,null],["0C188552","PINTURA EN SPRAY RAL7035 400 ML LEGRAND LCL 24.07.25","UND",0,null],["0C177912","CINTA MASKING TAPE DE 2\" X 40 YDS.","UND",0,null],["0C160992","CORDON NITRILO 8MM","MT",0,null],["0C191857","LONA PVC AZUL 1.50MT X MT 750gr/m2 IMPERMEABLE C/PROTECCION UV","UND",0,null],["101301174232","TARUGO TOX BLANCO 8 (5/16\") (CTO)","CTO",0,null],["0C160990","TEROKAL RECORD 56 1 GLN.","GLN",0,null],["0C191858","THERMOFILM VP MEDIANO 1.20MT (1450 MICRAS) X MT","UND",0,null],["0C191856","TORNILLO SPACK DE 5 X 60MM","UND",0,null],["2030397986","PRINTY 4911 TRODAT","UND",0,null],["20303159810","TINTA PARA SELLO PRINTY 7011 NEGRO","UND",0,null],["0C158922","ACEITE 3 EN 1 X 90 ML","UND",0,null],["0C190498","CANDADO YEI 30MM - YALE","UND",0,null],["0C160008","CINTA VULCANIZANTE SCOTCH 23","UND",0,null],["0C190491","CINTILLOS 300MM X 4.8","CTO",0,null],["0C160975","BROCHA 4\".","UND",0,null],["0C192175","CANDADO Y110 50MM","UND",0,null],["0C192179","CINTA TEFLON 1/2\" X 10MTAMARILLO","UND",0,null],["0C192178","CINTA TEFLON ROJO 1/2\" X 12MT ALEMAN - GERMANY","UND",0,null],["103191470","CANDADO DE NYLON GRILLETE DE ACERO DE 1 1/2 ROJO 201RED-S BEIAN-LOCK","UND",0,null],["101001193086","DESAGUE P/LAVORATORIO DECORATIVO ULTRAINOX XL 1.1/4 X 13\" C/REBOSE MASD003 - METUSA","UND",0,null],["0C194018","BARNIZ MARINO TEKNO-LCL 07.11","UND",0,null],["0C194024","BARNIZ T-81 CAOBA TEKNO-LCL 07.11","UND",0,null],["0C194031","DISOLVENTE EXTRA ACRILICO ORO ET-950 (3.5LT) ANYPSA-LCL 07.11","UND",0,null],["0C194032","DISOLVENTE MAESTRAZO ACRILICO AUTOMOTRIZ AC-350 ANYPSA-LCL 07.11","UND",0,null],["0C194016","Escobilla de de lavar con anillo de 15'' Chasquy-LCL 07.11","UND",0,null],["0C194020","MASILLA PARA PARED -LCL 07.11","UND",0,null],["0C194023","PINTURA ESMALTE VENCENAMEL NUEVO ROBLE VENCEDOR -LCL 07.11","UND",0,null],["0C194021","PINTURA GLOSS X3 NEGRO ANYPSA-LCL 07.11","UND",0,null],["0C194017","PINTURA LATEX BLANCO MATE (16LT) -LCL 07.11","UND",0,null],["0C194022","PINTURA OLEO MATE COLOR BLANCO VENCEDOR-LCL 07.11","UND",0,null],["0C194019","PINTURA TEMPLE BLANCA 5KG MAJESTAD -LCL 07.11","UND",0,null],["0C194037","PINTURA VENCELATEX MATE AZUL 2301 VENCEDOR -LCL 07.11","UND",0,null],["0C194030","PISTOLA P/PINTAR GRAVEDAD HVLP,VASO PLASTICO 1.4MM - 12128 TRUPER-LCL 07.11","UND",0,null],["0C194033","TABLERO MDF 2.8MM X 1.85 X 2.44MT CEREZO DUROLAC-LCL 07.11","UND",0,null],["0C194034","WAYPE PAÑO-LCL 07.11","UND",0,null],["0C194035","ZOCALO MDF ROBLE MARINO 18x58x2600mm-LCL 07.11","UND",0,null],["0C161751","Cinta Aislante de color Amarillo LCL 08.05","UND",0,null],["0C161755","Cinta Aislante de color Azul LCL 08.05","UND",0,null],["0C161754","Cinta Aislante de color Blanco LCL 08.05","UND",0,null],["0C161752","Cinta Aislante de color Verde LCL 08.05","UND",0,null],["0C195383","DESAGUE SUMIDERO ULTRAINOX 9\" CON REBOSE 3120MASD005_3.12","UND",0,null],["0C195384","SILICONA SANISIL COLOR BLANCA 280 ML_3.12","UND",0,null],["0C195382","NYLON DESLIZANTE 25MM_3.12","UND",0,null],["0C195023","CINTA PARA CONO CHICO (36 X 9CM)_28.11","UND",0,null],["0C195024","CINTA PARA CONO MEDIANA (47 X 9CM)_28.11","UND",0,null],["0C161753","Cinta Aislante de color Rojo LCL 08.05","UND",0,6.9],["0C195782","ESCUADRA PARA CARPINTERO 12\" CON MANGO 100% ALUMINIO COD.14376_LCL.12.12","UND",0,24.7],["0C195780","LIJA PARA MADERA N° 100_LCL.12.12","UND",0,1.8],["0C195781","LIJA PARA MADERA N° 101_LCL.12.12","UND",0,1.8],["0C195783","SARGENTA 24\" - 60CM COD: 17735_LCL.12.12","UND",0,130.0],["0C195778","SIKAFLEX 11FC PURFORM GRIS 300ML_LCL.12.12","UND",0,28.0],["103192987","BLOQUEO DE SEGURIDAD INTERR MINIATURA CB00012 - LOTO MASTER","UND",0,null],["20303103096","SELLO TRODAT 4912","UND",0,null],["0C196224","ENGRASADORA 14 ONZ CON MANGUERA DOSIFICADORA COD:14861 TRUPER_ LCL.19.12","UND",0,63.5],["10102166601","GUANTE DIELECTRICO CLASE 0 HASTA 1000V NOVAX (SOLO USO KCP)","PAR",0,null],["0C201223","CABLE 3X18AWG LSZH-300V 8011 (RLLX305MTS) LCL.30.03","RLL",0,1150.0],["10107193405","LENTE SKY BLUE OSCURO A/F MARCO AZUL STEELPRO (USO FABER CASTELL)","UND",0,null],["0C201260","JUEGO DE ORING D/NITRILO MILIMETRICO 386PZS LCL.31.03","JGO",0,99.0],["0C192176","FORMADOR DE EMPAQUETADURA ADEX 3H T/AVIACION FRASCO 143 GR","UND",0,12.0],["0C194027","LIJA AL AGUA N°100-LCL 07.11","UND",0,1.8],["0C190861","LIJA DE FIERRO N°120","UND",0,2.99],["0C202329","CHUMACERA SKF SY 1.15/16 TF LCL 15.04.26","UND",0,255.0],["0C202465","CABLE ELECTRICO GPT AWG 18 NEGRO INDECO LCL 16.04.26","MT",0,1.2],["0C202464","CONTROL DE TEMPERATURA Y TERMOMETRO DIGITAL 16A MOD: TIC-17RGTI/09 FULL GAUGE LCL 16.04.26","UND",0,164.0],["0C202467","PRESOSTATO DUAL KP 15 AUT/MAN DANFOSS LCL 16.04.26","UND",0,399.0],["100601202071","ASPERSOR METALICO 2 VIAS C7ESTACA 11\" 10330 LCL.13.04","UND",0,29.5],["100601202077","CONECTOR RAPIDO UNIVERSAL P7MANGERAS PLASTICO NARANAJA LCL.13.04","UND",0,9.9],["0C202468","HIDROLAVADORA K5 BLACK 9.389-292.0 KARCHER LCL 16.04.26","UND",0,2290.0],["0C202593","BATERIA LI-ION 20V 4.0AH INDUSTRIAL TFBLI20021 LCL 17.04.26","UND",0,188.0],["0C202594","BATERIA PREMIUM COMPACTA ION LITIO 20V MAX 5.0AH DCB202-B3 LCL 17.04.26","UND",0,399.0],["0C202641","ALICATE ARTICULADO PICOLORO 10\" 84-110/84-141 STANLEY LCL 20.04.26","UND",0,37.5],["0C202637","APLICADOR DE TUBO DE SILICONA COD: 17558 *REFORZADA* TRUPE LCL 20.04.26","UND",0,26.5],["0C202643","CHISPERO MOD:19271 TRUPER LCL 20.04.26","UND",0,8.9],["0C202639","DADO ENC.1/4 20PZS MM PLG 92-802 STANLEY LCL 20.04.26","JGO",0,94.0],["0C202642","EXPANDIDORES LLAVE RATCHET Y CORTATUBO 1/8\" A 1 1/8\" MOD:QFT-278 QUALITY LCL 20.04.26","UND",0,209.0],["0C202640","PULVERIZADOR DE PLASTICO 1LT NACIONAL LCL 20.04.26","UND",0,6.0],["0C202644","SOPLADOR 600W STPT600 STANLEY LCL 20.04.26","UND",0,397.0],["0C202638","TIJERA P/HOJALATERO 12\" COD:18502 TRUPER LCL 20.04.26","UND",0,45.6],["0C202345","ALICATE ARTICULADO PICOLORO 10\" 17351 TRUPER LCL 15.04.26","UND",0,25.9],["0C202344","ALICATE CORTE PUNTA Y UNIVERSAL 1000V 3PZ 84-011 MAX STEELL STANLEY LCL 15.04.26","JGO",0,211.0],["0C202339","ALICATE PRESION CURVO 10\" 84-369 STANLEY LCL 15.04.26","UND",0,35.0],["0C202352","BANDEJA PLASTICA 9\" COD: 19211 TRUPER LCL 15.04.26","UND",0,6.6],["0C202351","BROCA P/HSS METAL Y CONCRETO 11PZAS 11335 TRUPER LCL 15.04.26","JGO",0,37.0],["0C202349","CARDA TIPO BROCHA 3/4\" PARA TALADRO 11593 TRUPER LCL 15.04.26","UND",0,4.9],["0C202340","DESARMADOR JGO 10PZA CUSHION GRIP 66-676 STANLEY LCL 15.04.26","JGO",0,68.0],["0C202348","EXTRACTOR DE PERNOS (JGOX5PZS) 78-023 STANLEY LCL 15.04.26","JGO",0,52.4],["0C202347","HOJA DE SIERRA 18 TPI 1/2 X 12\" SANDFLEX LCL 15.04.26","UND",0,6.35],["0C202343","LLAVE ALLEN LARGAS PULGADAS/MILIMETRICAS PUNTA BOLA (25PZ) 15572 TRUPER LCL 15.04.26","JGO",0,47.6],["0C202338","LLAVE FRANCESA 8\" CROMADO C/GRIP 15510 TRUPER LCL 15.04.26","UND",0,20.0],["0C202341","LLAVE STILSON 14\" 22013 PRETUL LCL 15.04.26","UND",0,35.5],["0C202350","PRENSA HIERRO NODULAR P/CARPINTERIA 6\" COD:17663 TRUPER LCL 15.04.26","UND",0,45.0],["0C202353","SOPORTE ORGANIZADOR P/ESCOBAS 5 ESPACIOS LCL 15.04.26","UND",0,49.9],["0C202346","TALADRO INAL.PERC.20V 1/2\" LITIO DCD796D2-B2 (BATERIA + CARGADOR) DEWALT LCL 15.04.26","UND",0,1145.0],["0C202342","WINCHA METRICA 5MTS 30-716 STANLEY LCL 15.04.26","UND",0,19.9],["0C202596","ATORNILLADOR 1/4\" 3.6 BOSCH GO 2.0 + PUNTA + CBL LCL 17.04.26","UND",0,239.0],["0C202595","LINTERNA PARA CASCO (MANOS LIBRES) 720 LUMEN NE-363 NEW ENERGY LCL 17.04.26","UND",0,68.0],["0C202597","REMACHADORA PRO SWIVEL GIRATORIA MR77C STANLEY LCL 17.04.26","UND",0,120.0],["100601198352","CUCHILLA AUTO RETRACTIL DE SEGURIDAD 10-189C STANLEY LCL.10.02","JGO",0,39.9],["0C202624","FILTRO DE AGUA P/HIDROLAVADORA 2.642-794.0 KARCHER LCL 20.04.26","UND",0,163.0],["0C203094","BROCA CONICA DIAMANTADA 9-50MM KM-2397 LCL 27.04.26","UND",0,35.0],["0C203084","VALV. BOLA INOX 1 1/4\" C-306 C/ROSCA SUN LCL 27.04.26","UND",0,59.9],["10070573123","PINTURA SPRAY ABRO COLOR NEGRO BRILLANTE","UND",0,10.9],["50304101310","DESATORADOR PARA BAÑO MANGO PLASTICO/JEBE","UND",0,null],["0C192180","GRASA AMARILA 210GR MULTIPROPOSITO EP-2","UND",0,7.8],["0C195019","LIMPIA CONTACTO ELECTRONICO CRC 11ONZ SPRAY (312GR)_28.11","UND",0,33.5],["0C205001","PERNOS HEX ZINC G2 1/4\" X 1\" C/TUERCA Y ARANDELA PLANA LCL.02.06","UND",0,0.45],["0C205000","STOVE BOLTS 1/8\" X 1\" C/TUERCA Y ARANDELAS LCL.02.06","CTO",0,16.8],["0C204999","TARUGO P/DRYWALL 15MM PVC BLANCO LCL.02.06","UND",0,0.5],["0C205007","TERMINAL NYLON HEMBRA AZUL 16-14AWG LCL.02.06","CTO",0,17.5],["0C205003","TERMINAL OJAL AISLAD P/CAB AMARILLO Nº10 - 12AWG (3/16) LCL.02.06","CTO",0,20.9],["0C205004","TERMINAL OJAL AISLAD P/CAB AZUL Nº16 - 14AWG (3/16) LCL.02.06","CTO",0,14.0],["0C205008","TERMINAL P/CABLE TIPO MANGUITO AZUL 14 AWG (2.5MM) LCL.02.06","UND",0,0.3],["0C205360","LLAVE LAVAD PARED PORTOFINO P/FLEX M01R4N00 LCL.10.06","UND",0,263.0],["0C205357","NIPLE DE F°G° PESADO 1/2\" x 1/2\" LCL.10.06","UND",0,1.8],["0C205358","TEE DE F°G° 1/2\" LCL.10.06","UND",0,3.0],["0C205359","TUBO DE ABASTO DE 1/2\" X 1/2\" X 100 M-H MAST536 ALUMINIO LCL.10.06","UND",0,33.0],["0C205347","BANDEJA PLASTICA DE 9\" LCL.09.06","UND",0,6.6],["0C158921","AFLOJATODO WD-40 11ONZ","UND",0,36.3],["101001122181","CINTA TEFLON ROJO 3/4\" METUSA","UND",0,2.7],["0C159886","SILICONA ROJA ABRO 11-AB CHISGUETE 3 OZ","UND",0,15.0],["0C190496","PINTURA SPRAY ABRO 035C COLOR BLANCO BRILLANTE","UND",0,10.9],["0C207327","AGARRADERA CURVA + ACCESORIO DE BARRER CHASQY","UND",0,null],["0C195022","LLAVE CRUZ PARA TABLERO GENERICO_28.11","UND",0,29.5],["0C195021","PAÑOS WYPALL EN ROLLO X-70 KIMBERLY CLARK_28.11","UND",0,35.6],["0C196234","BARRA RETRACTIL 2.10MTS P/CONOS _ LCL.19.12","UND",0,19.5],["0C207590","ADAPTADOR A/A (R410A) DE 5/16\" (½\"- 20) F X 1/4 LCL.23.07","UND",0,24.6],["0C207591","ADAPTADOR A/A CURVO PARA R410A 1/4\" MACHO ,5/16\" F - QH4-14516 QUALITY LCL.23.07","UND",0,21.5],["0C207572","ARCO SIERRA 12\" PROF.EXTRA PESADO COD:10232 TRUPER LCL.23.07","UND",0,50.9],["0C207582","BROCA ESCALONADA OXIDO NEGRO 3PZS COD: 100988 TRUPER LCL.23.07","JGO",0,103.0],["0C207584","BROCA P/CONCRETO CYL-1 (3 A 10MM) (8PZS) BOSCH LCL.23.07","JGO",0,42.0],["0C207583","BROCA P/HSS METAL 13PZ (3/16\" - 5/16\") 11402 TRUPER LCL.23.07","JGO",0,54.9],["0C207575","CORTADORA DE MAYOLICA 25\" (63CM) MOD: 100885 TRUPER LCL.23.07","UND",0,399.0],["0C207581","DESARMADOR AISLADO 1000V 7PZA 60-175 STANLEY LCL.23.07","JGO",0,105.0],["0C207580","DESARMADOR JGO 6PZA CUSHION GRIP 66-672 STANLEY LCL.23.07","JGO",0,44.0],["0C207574","ESCALERA DE ALUMINIO 3 PASOS TIPO BANQUETA C/ASA UN ACCESO MOD:EAB150-3IA AMERICAN BULL LCL.23.07","UND",0,195.0],["0C207571","ESCOBILLA DE ACERO 4X14 LCL.23.07","UND",0,9.9],["0C207576","EXTRACTOR DE POLEA 3 BRAZOS, 6\" COD:14506 TRUPER LCL.23.07","UND",0,147.5],["0C207589","FROTACHO PLASTICO 30X20CM JDPLAST LCL.23.07","UND",0,18.2],["0C207588","FROTACHO PLASTICO 6X30CM JDPLAST LCL.23.07","UND",0,10.2],["0C207579","GIS ROJO P/TIRALINEA 8 ONZ COD:18578 TRUPER (REPUESTO) LCL.23.07","UND",0,4.6],["0C207577","JUEGO SIERRAS COPA BIMETAL 6 + 2 MANDRILES COD: 15405 TRUPER LCL.23.07","JGO",0,149.0],["0C207585","LINTERNA PARA CASCO (MANOS LIBRES) 3 LED 60LUMEN ENERGIZER LCL.23.07","UND",0,74.0],["0C207593","LINTERNA PARA CASCO (MANOS LIBRES) 500LUMEN IP44 NE-NBO144 NEW ENERGY LCL.23.07","UND",0,58.5],["0C207586","PLANCHA BATIR 7\" COD:20610 PRETUL LCL.23.07","UND",0,12.9],["0C207587","PLANCHA BATIR 9\" COD:21049 PRETUL LCL.23.07","UND",0,14.9],["0C207573","REFLECTOR LED RECARGABLE 10W LUZ BLANCA ORANGE LCL.23.07","UND",0,187.5],["0C207594","TERMOMETRO INFRARROJO -60º A 500º PRECISION 2% \" CPS\" MOD:TMINI12 LCL.23.07","UND",0,510.0],["0C207578","TIRALINEA METALICO 30MT C/GIS 18579 TRUPER (AZUL) LCL.23.07","UND",0,42.0],["0C207592","VALVULA DE CAMBIO GUSANILLO 1/4\" - SACA PICHINA - RRC14 LCL.23.07","UND",0,71.5],["0C207596","CEMENTO ANDINO TIPO ULTRA HS 42.5KG LCL.23.07","BOL",0,43.2],["0C175983","EQUIPO DOBLE HERM.INDIKO LED 2X16W IP65 TCW063 1200MM (INC. 2 FLUORESCENTES LED 16W 1200MM ECOFIT) P","UND",0,75.0],["0C207595","FLUORESCENTE Ecofit LEDtube 1200mm 16W/765 PHILIPS LCL.23.07","UND",0,6.15],["0C207597","IMPERMEABILIZANTE SIKA 1 LIQUIDO 4LT LCL.23.07","GLN",0,29.9],["970001","SERVICIO DE BORDADO SERVICIO DE FABRICACION DE 2 BANDERAS, (1 PERU Y 1 KC)-COT.0996.08.26","UND",0,null],["0C208148","CODO DE F°G° DE 1/2\" X 90°","UND",0,null],["0C208144","CODO DE F°G° DE 3/4\" X 90°","UND",0,null],["0C208143","NIPLE ACERO ACERO INOX 304 - 3/4\" X 1\"","UND",0,null],["0C208146","NIPLE DE F°G° 3/4\" X 4\" ROSCADO","UND",0,null],["0C208149","NIPLE DE F°G° PESADO 1/2\" X 3\" ROSCADO","UND",0,null],["0C205348","PEGAMENTO P/PVC 1/32 GL AZUL 4 ONZAS LCL.09.06","UND",0,18.9],["0C208147","REDUCCION BUSHING F° G° DE 3/4\" A 1/2\"","UND",0,null],["0C208142","UNION SIMPLE ACERO ACERO INOX 304 - 3/4\"","UND",0,null],["0C204270","VALVULA ESFERICA DE 1/2\" CIM LCL 21.05.2026","UND",0,null],["0C208145","VALVULA ESFERICA DE 3/4\" CIM14 CIM","UND",0,null],["0C208141","JET 70 MP AMARILLO RAL 1023 + CATALIZADOR + ECOPOXY 90","UND",0,null],["10110483009","RODILLO 3\" EPOXICO TORO","UND",0,null],["0C158933","CINTA AISLANTE NEGRA 3M SUPER 33+","UND",0,36.5],["0C195020","LIQUIDO DE LIMPIEZA ALKI-FOAM_28.11","GLN",0,122.0],["0C209045","BROCHA DE 1\" LCL.20.08","UND",0,null],["0C209034","CINTILLOS 100MM X 2.5 (BLANCO) LCL.20.08","CTO",0,null],["0C158931","CINTILLOS 300MM X 4.8 (blanco )","UND",0,null],["0C209042","DISCO CORTE INOX 4 1/2\"X3/64\"X7/8\" DC BNA12 LCL.20.08","UND",0,null],["0C209041","DISCO DESBASTE METAL BDA640 4 1/2\" X 1/4\" X 7/8\" LCL.20.08","UND",0,null],["0C209047","ESPONJA MULTIUSO LCL.20.08","UND",0,null],["0C209048","GRASA LIQUIDA SPRAY HHS 2000 - 500ML LCL.20.08","UND",0,null],["0C209040","PEGAMENTO CELIMA BLANCO PORCELANATO FLEXIBLE 25KG LCL.20.08","BOL",0,null],["0C195779","SIKAFLEX 11FC PURFORM BLANCO 300ML_LCL.12.12","UND",0,28.0],["0C209035","TARUGO PVC 1/2\" PLOMO LCL.20.08","UND",0,null],["0C209038","TARUGO PVC 1/4\" VERDE 6mm LCL.20.08","UND",0,0.08],["0C209039","TARUGO PVC 3/16 ROJO LCL.20.08","UND",0,null],["0C209036","TARUGO PVC 3/8\" NARANJA (10mm) LCL.20.08","UND",0,0.15],["0C209037","TARUGO PVC 5/16\" AZUL LCL.20.08","UND",0,null],["0C209049","TIRAFON DE 1/4\" X 1\" ZINCADO HEXAGONAL LCL.20.08","UND",0,null],["0C209050","TIRAFON DE 3/8\" X 1\" ZINCADO LCL.20.08","UND",0,null],["0C209051","TIRAFON DE 5/16 x 1\" ZINCADO HEXAGONAL LCL.20.08","UND",0,null],["0C180794","AMBIENTADOR EN SPRAY400ML (AROMAS VARIOS) GLADE","UND",0,null],["50407129329","DETERGENTE SAPOLIO DE 13.5 KG","SCO",0,null],["50412130668","PASTILLA PERFUMADOR COLGANTE WC WESTERN CLEAN LIMON 55GR","UND",0,null],["5031496720","PULVERIZADOR DE PLASTICO BLANCO 1LT NACIONAL","UND",0,null],["50315120093","RECOGEDOR DE PLASTICO HUDE","UND",0,null],["0C207598","ARENA FINA (40KG) LCL.23.07","BOL",0,8.5],["0C205005","BORNERA DE REGLETA PVC BLANCO 15AMP 12MM LCL.02.06","UND",0,5.6],["0C209043","BROCHA DE 2\" LCL.20.08","UND",0,13.0],["0C209044","BROCHA DE 3\" LCL.20.08","UND",0,null],["0C209046","RODILLO 3\" BLANCO LCL.20.08","UND",0,null],["0C194029","RODILLO MULTIUSO VERDE 9\" PINTOR -LCL 07.11","UND",0,null],["0C187585","TERMINAL HEMBRA T/AISLADO 14-16 AZUL","UND",0,null],["0C187586","TERMINAL MACHO T/AISLADO 14-16 AZUL","UND",0,null],["100601211193","CHAPAS CROMADAS T/TRAMPAS FRONTAL T/ PIN","UND",0,null],["100601211194","CORREDERA TELESCOPICA 18\" 4SCM (2PZS) COLOR ALUMINIO","UND",0,null],["0C196241","BLOQUEO DE SEGURIDAD INTERR CAJA MOLDEADA (100-160A) CB00007 LOTO MASTER _ LCL.19.12","UND",0,null],["0C196240","BLOQUEO DE SEGURIDAD INTERR RIEL DIN CB00003 LOTO MASTER","UND",0,null],["0C196242","BLOQUEO DE SEGURIDAD INTERR TERM CB00005 LOTO MASTE _ LCL.19.12","UND",0,null],["0C192173","CINTA AISLANTE TEMAFLEX 165 AMARILLO","UND",0,6.9],["0C192170","CINTA AISLANTE TEMAFLEX 165 AZUL","UND",0,6.9],["0C192172","CINTA AISLANTE TEMAFLEX 165 BLANCO","UND",0,6.9],["0C192171","CINTA AISLANTE TEMAFLEX 165 VERDE","UND",0,6.9],["0C195018","CINTA AISLANTE TEMFLEX 165 NEGRO_28.11","UND",0,6.9],["0C158932","CINTA AISLANTE TEMFLEX 165 ROJO 3M","UND",0,6.9],["0C190490","CINTA AUTOADHESIVA D/ALUMINIO 2\" X 50 YD FASSON","UND",0,44.0],["0C158929","CINTA FOAM DE 1/8 X 2\"\" X 30 PIES K FLEX USA TFT30","UND",0,44.5],["0C176272","DISPOSISTIVO DE BLOQUEO P/INTERRUPTO E245 - ABUS","UND",0,null],["0C195017","TRAPO INDUSTRIAL COLOR_28.11","KG",0,4.5],["0C195777","TRAPO MICROFIBRA COLOR_LCL.12.12","UND",0,2.99],["10474928","PASTILLAS DE CLORO X 4 KG (1396889)","BOL",0,null],["100601211363","LLAVE BRONCE LIVIANO P/ PURIFICADOR DE - NACIONAL LCL.01.10","UND",0,null],["100601211378","LLAVE INOX PIPURIFICADOR DE AGUA - NACIONAL LCL.01.10","UND",0,null],["100601211799","COND. 60,000 BTU / HR SEER 13.4, R410A, 220/ 3/ 60HZ MOD:38KBH0601120","UND",0,null],["100601211800","EVAP. 60,000 BTU / HR R410A, R22 C/CONTROL REMOTO MOD:42KUE060N","UND",0,null],["90501210645","BALANZA PLATAFORMA 15OKG COO:PF15OB","UND",0,null],["20303102712","TINTA P/TAMPON AZUL 30CC ARTESCO","UND",1,1.79],["20303102713","TINTA P/TAMPON ROJO 30CC ARTESCO","UND",1,1.79],["20192543","ARCHIV PALANCA CARTON PLAST L/ANGOSTO OF DIMERC","UND",1,4.82],["0C148327","MOUSE OPTICO LOGITECH M90 BLACK","UND",1,25.84],["0C182391","BOLIGRAFO BORRABLE VIOLET FRIXION 0.7MM PILOT","UND",1,7.47],["201119406","BANDERITAS ADH. AMARILLO X 50 UNI DIMERC","UND",1,2.36],["201112778","FILE MANILA A4 AMARILLO X 25 UNI GRAFIPAPEL","UND",1,15.42],["201107508","FILE MANILA A4 AZUL X 25 UNI GRAFIPAPEL","PQT",1,15.29],["201101395","FORRO A4 VINIFAN","RLL",1,5.59],["20192570","BINDER CLIPS 19MM (3/4) CAJA X 12 UNI FULTONS","PQT",1,1.32],["100704102156","CINTA EMBALAJE TRANSP 2\"X110 YRD (740) PEGAFAN","PQT",1,7.27],["1304070002","SEPARADOR DE CARTULINA A4 AMARILLO (BOLSA X 100 UND)","CTO",1,15.9],["201149436","CATALOGO A4 X 60 FUNDAS AZUL FLEX ARTESCO","UND",1,15.9],["101104101396","MARCADOR PIZARRA AZUL 123 FABER CASTELL","UND",1,3.73],["101104101397","MARCADOR PIZARRA NEGRO 123 FABER CASTELL","UND",1,3.52],["201103107","MARCADOR PIZARRA ROJO 123 FABER","UND",1,3.52],["201140957","RESALTADOR VERDE JUMBO DIMERC","UND",1,2.1],["201133953","CINTA ADH. CRISTAL 24MMX66M (1X72YRD) PEGAFAN","RLL",1,4.01],["201119214","DISPENSADOR CINTA GRANDE GX 720 PEGAFAN","UND",1,26.0],["201123844","NOTAS ADH. 3 X 3 100H NARANJA NEON STICK IN","UND",1,3.3],["201123874","NOTAS ADH. 3 X 3 100H VERDE NEON STICK IN","UND",1,3.3],["201101377","NOTAS ADH. 3 X 5 100H AMARILLO 655 POST IT","UND",1,8.2],["201115043","NOTAS ADHESIVA 3 X 3 100H ROSADO NEON 654 FABER","UND",1,2.3],["1304110001","CLIPS METALICO # 1 TAM.33MM CJA X 100 UNI ARTESCO","CAJ",1,1.09],["201112779","FORRO ADHESIVO 45CM X 3MT CONTACT VINIFAN","RLL",1,6.65],["201121901","MARCADOR PIZARRA RECARG VERDE 641 (123) STABILO","UND",1,3.73],["201100866","PEGAMENTO BARRA 21GR ARTESCO","UND",1,2.01],["0C103849","REGLA ACRILICA 30CM TRANSPARENTE CRISTAL ARTESCO","UND",1,0.75],["20192585","SOBRE MANILA A4 X 50 UNI GRAFIPAPEL","PQT",1,13.91],["0C189772","TINTA EPSON T544120 AL BLACK L3110","UND",1,34.0],["20403102715","TINTA RECARGA P/PLUMON PERMAN NEGRO 305 27.5ML FAB","UND",1,9.13],["1304200004","BOLIG AZUL 031 F TRILUX 0.8MM FABER CASTELL","UND",1,0.48],["0C192013","BOLIG NEGRO 031 F TRILUX 0.8MM FABER CASTELL","UND",1,0.48],["201122018","CUADERNO D/RING CUADRIC A4 160H T/D NEGRO SURCO","UND",1,14.9],["201107906","TABLERO PLASTICO OF AZUL DIMERC","UND",1,10.12],["201122570","CUADERNO EMPASTADO CUADRIC A4 100H T/D GRAFIRESA","UND",1,13.9],["20195694","LIMPIA TIPO 35 GR ARTESCO SURTIDO","UND",1,1.84],["905201266","AUDIFONOS H390 USB 24 MT LOGITECH","UND",1,null],["20192536","CUADERNO D/RING CUADRIC A4 100H DISEO MARK BOOK","UND",1,6.55],["0C160889","MARCADOR PERMANENTE P/REDONDA NEGRO PX 20 UNIBALL","UND",1,15.0],["0C160893","MARCADOR PERMANENTE P/REDONDA VERDE PX 20 UNIBALL","UND",1,12.9],["1304280017","PLUMON INDELEBLE FABER CASTELL OHP-421 F AZUL","UND",1,null],["0C103783","BOTELLA TINTA T664120 NEGRO L110/L200/L355/L555 EPSON","UND",1,45.15],["201106832","PAPEL LUSTRE COLOR AMARILLO X 5UND","UND",1,1.56],["201158859","TAMPON DACTILAR NEGRO 9094 TRODAT","UND",1,9.5],["0C160888","MARCADOR PERMANENTE P/REDONDA BLANCO PX 20 UNIBALL.-","UND",1,15.0],["201202588","PIZARRA BLANCA 60CM X 90CM M/MADERA DIMERC","UND",1,null],["20192628","ENGRAPADOR ALICATE (50H) K1 / R1 RAPID","UND",1,70.38],["20193090","CALCULADORA MESA 12DIG MX-12B-BK NEGRO CASIO","UND",1,23.27],["201190332","GRAPAS 23/13 CJA X 1000 UND DIMERC","PQT",1,3.04],["0C201275","TINTA T504220 C/CIAN T504 EPSON","UND",1,43.75],["0C201276","TINTA T504320 C/MAGENTA T504 EPSON","UND",1,43.75],["0C201277","TINTA T504420 C/YELLOW T504 EPSON","UND",1,43.75],["201101362","MARCADOR PIZARRA RECARG NEGRO WBMA VBM PILOT","UND",1,5.7],["201101361","MARCADOR PIZARRA RECARG ROJO WBMA VBM PILOT","UND",1,5.7],["201101363","MARCADOR PIZARRA RECARG VERDE WBMA VBM PILOT","UND",1,5.7],["201107609","NOTAS ADH. 3 X 3 100H AMARILLO 654 POST IT","UND",1,4.08],["0C103835","PAPELOGRAFO CUADRIMAX 58CMX83CM X 25 UNI 56GR","UND",1,6.38],["201101145","PEGAMENTO BARRA 40GR UHU STICK","UND",1,9.57],["201121805","PERFORADOR 40H NEGRO FULTONS","UND",1,25.12],["20192541","RESALTADOR AMARILLO TEXTLINER 48 FABER","UND",1,2.99],["0C103851","RESALTADOR CELESTE E 48 ARTESCO","UND",1,1.45],["0C103852","RESALTADOR NARANJA E 48 ARTESCO","UND",1,1.8],["20192551","RESALTADOR VERDE TEXTLINER 48 FABER","UND",1,2.99],["201101206","TINTA CARTUCHO WBS VB M P/PLUMON VERDE PILOT","UND",1,3.33],["20192555","CHINCHES DORADO CJA X100 UNI FULTONS","PQT",1,1.2],["1304050002","BORRADOR BLANCO GRANDE ARTESCO","UND",1,0.78],["201102037","ENGRAPADOR C/SACAGRAPAS NEGRO (20H) M 526 ARTESCO","GR",1,9.61],["201101372","PERFORADOR P 00 (20H) NEGRO FULTONS","UND",1,8.64],["1304340002","TAJADOR ARTESCO DE METAL","UND",1,0.65],["201101205","TINTA CARTUCHO WBS VB M P/PLUMON NEGRO PILOT","UND",1,3.33],["101104123924","ENGRAPADOR METAL E 25 NEGRO P/25H FABER CASTELL","UND",1,8.9],["201149576","CORRECTOR T/LAPICERO PUNTA PLASTICA 9ML ARTESCO","UND",1,1.74],["201107881","MICA P/LAMINADORA A3 150 MIC X 100 UNI DIMERC","UND",1,121.72],["60032","MOTA PARA PIZARRA ACRILICA DIMERC","UND",1,1.88],["201193101","GUILLOTINA A3 21061 18 X 15 METALICA WARRIOR","UND",1,325.0],["0C207329","LAMINADORA A3 10542 WL905 WARRIOR","UND",1,353.03],["201114228","TORNILLO CHICAGO 4 X 100 UNI","UND",1,125.0],["201141694","SEPARADOR A4 PP COLORES 12 DIV DIMERC","UND",1,4.8],["201113970","BOLIGRAFO AZUL 035 F TRIMAX ARTESCO","UND",1,0.58],["20192534","CORRECTOR T/LAPICERO PUNTA METAL LIQUID PAPER","UND",1,4.9],["0C160890","MARCADOR PERMANENTE P/REDONDA ROJO PX 20 UNIBALL.-","UND",1,11.18],["201101597","PEGAMENTO BARRA 40GR ARTESCO","UND",1,3.41],["201118276","PORTA PAPEL TRANSP A4 X 10 UNID VINIFAN","UND",1,5.77],["20192571","TAMPON NEGRO ARTESCO","UND",1,null],["0C182387","BOLIGRAFO BORRABLE AZUL FRIXION 0.7MM PILOT","UND",1,7.47],["0C182388","BOLIGRAFO BORRABLE NEGRO FRIXION 0.7MM PILOT","UND",1,null],["20194800","ENGRAPADOR INDUSTRIAL 240 H DIMERC","UND",1,37.85],["20192561","FILE MANILA A4 X 25 UNI GRAFIPAPEL","PQT",1,8.11],["1304200010","LAPIZ ARTESCO 2B","UND",1,0.35],["201101390","BOLIGRAFO AZUL 060 FABER","UND",1,1.02],["201107595","MARCADOR CD OHP 421 S AZUL FABER","UND",1,3.12],["201110161","ARCHIV PALANCA PLASTICO L/ANCHO OF NEGRO DATA OFFI","UND",1,21.36],["201101388","BOLIGRAFO NEGRO 035 F TRILUX FABER","UND",1,0.48],["20403154548","ETIQ INKJET A4 007(200X288MM) 50H 50UN CJA DIMERC","CAJ",1,24.9],["20192631","MICA LISA P/ANILLAR A4 CRISTAL X 100 UND DIMERC","PQT",1,33.08],["20192532","MICA P/LAMINADORA A4 125 MIC X 100 UNI DIMERC","UND",1,53.36],["0C103826","NOTAS ADH. 3 X 3 100H X5COL NEON 654 5PK POST IT","UND",1,30.95],["1301030005","PORTALAPICES DELUXE NEGRO ARTESCO","UND",1,null],["0C201274","TINTA T504120 C/NEGRO T504 EPSON","UND",1,44.85],["101104101365","MARCADOR CD OHP 421 S NEGRO FABER","UND",1,3.12],["101104124521","BOLIG AZUL 032 M TRILUX 1.0MM FABER CASTELL","UND",1,0.55],["201102051","LAPIZ 2B C/BORRADOR ARTESCO","UND",1,0.37],["201101360","MARCADOR PIZARRA RECARG AZUL WBMA VBM PILOT","UND",1,5.7],["201106394","SEPARADOR CARTULINA A4 150GRX100UN BLANCO DIMERC","CTO",1,null],["201101204","TINTA CARTUCHO WBS VB M P/PLUMON AZUL PILOT","UND",1,3.33],["201101203","TINTA CARTUCHO WBS VB M P/PLUMON ROJO PILOT","UND",1,3.33],["20192528","ARCHIVADOR PALANCA CARTON PLAST L/ANCHO A4 DIMERC","UND",1,4.82],["201111406","CINTA ADH. DOBLE CONTACTO 1/2X55 YRD(12MM)SHURTAPE","RLL",1,9.02],["0C103839","PILA AAA X 2 UN DURACELL 1.5 V","PAR",1,6.05],["201101370","PORTA PAPEL PP A4 X 10 UN FULTONS","UND",1,1.8],["0C209220","PORTA TACO (S/TACO) NEGRO ARTESCO","UND",1,null],["201102165","TABLERO PLASTICO OF AZUL ARTESCO","UND",1,8.86],["201123876","TIJERA PREMIUM 7 PLASTOMETAL DIMERC","UND",1,3.5],["201101386","BOLIGRAFO AZUL 035 F TRILUX FABER","UND",1,0.48],["201102039","MARCADOR PERMANENTE P/REDONDA AZUL 23 FABER","UND",1,3.23],["20195453","PAPEL FOTOCOPIA A4 75GR 500H DIMERC OFFICE","PQT",1,17.41],["100803102052","PILA AA X 4 UN DURACELL 1.5 V","PQT",1,16.26],["1304280018","PLUMON INDELEBLE FABER CASTELL OHP-421 F NEGRO","UND",1,3.12],["0C103847","PORTA PAPEL TRANSP OF X 10 UN ARTESCO","UND",1,null],["12115262","CUCHARITA PEQUEÑA DESCARTABLE PQT X 100","PQT",1,null],["12113523","VASO POLIPAPEL 08 OZ BLANCO SIN TAPA PQT X 50 UND","PQT",1,16.5],["100803179904","BATERIA MN 1604 9V DURACELL","UND",1,16.9],["201146114","CAJA ARCHIVO BAUL (30.5X54X37.5CM) N1 ARTESCO","UND",1,39.9],["101104101200","MARCADOR PERMANENTE P/REDONDA NEGRO 23 FABER","UND",1,3.23],["201101393","BOLIGRAFO NEGRO 060 FABER","UND",1,1.02],["20194856","PORTA PAPEL TRANSP A4 X 10 UN ARTESCO","UND",1,6.59],["20192567","GRAPAS 26/6 CJA X 5000 UND CROMADO DIMERC","PQT",1,3.78],["201173621","PAPEL FOTOCOPIA A3 75GR 500H ECLIPSE","PQT",1,null],["201154674","PAPEL FOTOCOPIA A4 75GR 500H MAGNUM","PQT",1,10.9],["201118874","PAPEL PLOTTER 36 90 GR X 45 MT TUCO 2 GRAFIPAPEL","UND",1,50.64],["201211557","CUADERNO EMPASTADO CUADRIC A4 X 200H GRAFIRESA","UND",1,null],["201210560","STRETCH FILM P/ESTIRADO 18 X 9MIC 2.50 KG SOLPACK","UND",1,null],["0C197786","COMPRESOR HERMETICO 3/4 HP, 220/1/60, R134A - T/M-A- TECUMSEH LCL.29.01","UND",4,null],["0C197785","GAS REFRIGERANTE R134A ECOLOGICO (PRESENTACION LATA 340 Gr) - ICE LOONG - 134A - - LCL.29.01","UND",4,null],["0C197784","VALVULA DE ACCESO TIPO PICHINA 1/4 - QUALITY LCL.29.01","UND",4,null],["0C196133","COMPRESOR MANEUROP 5.5HP 380V/3/60HZ - DANFOSS - MTZ64-9","UND",4,null],["0C198047","FILTRO DESHIDRATADOR DE 1/2 SOLDABLE (SECADOR) - EMERSON - EK164S","UND",4,null],["0C199129","EQUIPO PORTATIL DE 14000 BTU/HR 220/1/60 FRIO SOLO - CHIGO - CP - 14C --- 39191 LCL.19.02","UND",4,null],["100601198667","EQUIPO DE AIRE ACONDICIONADO PISO TECHO DE 36.000 BTU/HR 220V/1HP/60HZ R410 FRIO SOLO 10 S","UND",4,null],["0C199130","MANGA AISLANTE TIPO MANGUERA DE 3/4 X 3/4 - SUPERLON - 3/4 X 3/4 - - - 10318 LCL.19.02","UND",4,null],["0C200361","CORTINA DE AIRE 220-230V / 50-60 HZ - 3FT / 0.90 MT TOPTECH-CARRIER TT-AC-FM_x0002_1009X32Y LCL.18.03","UND",4,null],["0C192168","COMPRESOR ROTATIVO R-410 ECOLOGICO DE 24,000 BTU/H 220/1/60 (CAPACITOR DE 50MFD) - GMCC - PA210M2CS-","UND",4,null],["0C202462","LANA DE VIDRIO CON FOIL DE ALUMINIO DE 1.5PULG X 1.2M X 30M - USA - JHON MANSVILLE - USA - MICROLITE","UND",4,null],["0C202455","COMPRESOR SCROLL DE 60,000 BTU/H 220/3/60 R410A - SANYO PANASONIC - CSBP160H36A LCL.16.04","UND",4,null],["0C202461","REDUCCION DE COBRE DE 7/8 A 3/4 LCL.16.04","UND",4,null],["0C202457","SOLDADURA DE PLATA AL 15% - LUCAS MILHAUPT LCL.16.04","UND",4,null],["0C202458","UNION DE COBRE SOLDABLE DE 1/2 LCL.16.04","UND",4,null],["0C202459","UNION DE COBRE SOLDABLE DE 3/4 LCL.16.04","UND",4,null],["0C202460","UNION DE COBRE SOLDABLE DE 7/8 LCL.16.04","UND",4,null],["100504105880","GAS REFRIGERANTE R134A ECOLOGICO 13.6 KG (9816)","UND",4,null],["0C202456","GAS REFRIGERANTE R410A ECOLOGICO ( PRESENTACION 11.3KG) - GLOBAL - R410A LCL.16.04","UND",4,null],["0C203077","FILTRO SINTETICO AZUL 30 PIES X 63 PULG. X 1 PULGADA - QUALITY - QFH-3063-16N LCL 27.04.26","UND",4,null],["101506202830","FILTRO DESHIDRATADOR DE 3/8 ROSCABLE (SECADOR) - TGM - TGM163 - 142 - 9906","UND",4,null],["0C161304","GAS REFRIGERANTE R410A ECOLOGICO (PRESENTACION BALON DE11.3 KG) - ICE LOONG - 410A - - 849 - 9818.","UND",4,null],["10110583686","LIMPIADOR SISTEMA DE REFRIGERACION ( REEMPLAZO 141B) QWIK ECOFLUSH QL1190 (13404)","UND",4,null],["0C199132","TUBO DE COBRE FLEXIBLE DE 3/4 (ROLLO DE 15 MT) - KRAFTMAN - 3/4 - - - 35419 LCL.19.02","RLL",4,null],["0C199131","TUBO DE COBRE FLEXIBLE DE 3/8 X 0.60 (ROLLO DE 15MTS) - KOHLER - 3/8 - - - 21624 LCL.19.02","RLL",4,null],["210001","SERVICIO DE TRANSPORTE TRASLADO DE LA OS N° 07009-102026, GAS REFRIGERANTE PARA CHILLER 3 A KC SANTA CLARA-","UND",4,null],["0C193409","GAS REFRIGERANTE R134A ECOLOGICO (PRESENTACION BALON 13.6 KG) - ICE LOONG - 134A - - 835 - 9816","UND",4,null],["0C191944","GAS REFRIGERANTE R404A ECOLÓGICO(PRESENTACION BALON DE 10.9 KG ) - ICE LOONG - 404A - - 838 - 9963","UND",4,null],["101001194837","KIT DE DIAFRAGMA FS280","JGO",5,null],["0C197159","ESPATULA 3\" 28-083 STANLEY LCL.21.01","UND",5,null],["0C197160","ESPATULA 5\" 28-085S STANLEY LCL.21.01","UND",5,null],["0C197158","LIJA ESMERIL 80 ASA (3M) LCL.21.01","UND",5,null],["0C197161","PINTURA EN SPRAY NEGRO MATE 012C ABRO LCL.21.01","UND",5,null],["0C197156","RODILLO DE 9\" X 15/32\" (12.00 MM.) BLANCO TORO LCL.21.01","UND",5,null],["0C197152","PINTURA TRAFICO MAESTRO AMARILLO ANYPSA LCL.21.01","GLN",5,null],["0C197153","PINTURA TRAFICO MAESTRO BLANCO ANYPSA LCL.21.01","GLN",5,null],["100601198414","CARRITO BALDE EXPRIMIDOR DE LIMPIEZA 34 LT EBRIEL LCL.11.02","UND",5,null],["100601198411","ENRROLLACABLE DE 50 MTS CON 4 TOMAS SCHUKO 2P +T, 16A, 230V (CABLE 3G1.5MM2) LCL.11.02","UND",5,null],["100601198417","LAMPARA PORT. 18V TE-CL 18/2000 LIAC-SOLO EINHELL LCL.11.02","UND",5,null],["100601198412","SOPLADORA INALÁMBRICA BLACK & DECKER LSW221- B2C 20V LCL.11.02","UND",5,null],["100601198408","TIJERA C/MANGO TELESCOPICO COD.18410 - TRUPER LCL.11.02","MIL",5,null],["100601198409","TIJERA PARA PODA 56 CM, LIGERA, MGOS TUBULARES, TRUPE COD. 18397 LCL.11.02","UND",5,null],["100601198624","ESPEJO PANORAMICO CONVEXO DE 60 CM. DIAM. MARCA TRANSIT - INCLUYE BRAZO SOPORTE LCL.16.02","UND",5,null],["0C198826","BALDE FORTE C/ASA METAL DE 20 LTS CODG BLX502600 REY LCL.16.02","UND",5,null],["0C198824","CARGADOR + BATERIA 4.0 AH 18V STARTER KIT EINHELL LCL.16.02","UND",5,null],["100601198666","RASTRILLO DE PLÁSTICO GRADUABLE COMBISYSTEM GARDENA GARDENA LCL.16.02","UND",5,null],["0C198952","ASIENTO P/INODORO ELONGADO BLANCO - TREBOL LCL.18.02","UND",5,null],["0C198954","ASIENTO REDONDO P/INODORO HP110 TREBOL LCL.18.02","UND",5,null],["0C198951","FLUXÓMETRO PARA URINARIO DE MANIJA COD. 185-19 HELVEX LCL.18.02","UND",5,null],["0C198953","VALVULA ESF. INOX. 1/2\" C-304 DOS CUERPOS SUN X PN25 WOG LCL.18.02","UND",5,null],["100601199385","TUBO LED ECOFIT E MAINS 16W T8 765 6500K LUZ DIA 1600LM 15000H 220-240V 1200MM - PHILIPS L","UND",5,null],["0C197789","JUEGO X 3 PCS. MACHOS MANUALES M6 X 1.00 URANGA LCL.29.01","UND",5,95.1],["100601199459","BALDOSA CERTAINTEED SERENE PLUS - BET 197 2 X 4 15.9MM LCL.02.03","UND",5,null],["100601199382","BLOQUEO PARA ENCHUFE DE 220 - 500V, 83X83X178MM, MARCA LOTO MASTER LM.EPL00001 LCL.25.02","UND",5,null],["100601199688","IMPRESORA MULTIFUNCIONAL EPSON ECOTANK L6370 ADF WIFI P/N: C11CL43301","MIL",5,null],["100601199512","PASTA PARA PULIR X 450 GR. F9000 SIMONIZ LCL.02.03","UND",5,null],["0C199796","BRADY CARTUCHO DE ETIQUETA ADHESIVA PARA BMP21-PLUS 19MMx6.4MTS BLANCO (M21-750-595-WT) LCL.09.03","UND",5,null],["0C197154","BROCHA DE NYLON DE 2\" TUMI LCL.21.01","UND",5,null],["0C197874","BROCHA DE NYLON DE 4\" TUMI","UND",5,null],["0C197155","BROCHA DE NYLON DE 6\" TUMI LCL.21.01","UND",5,null],["0C199786","CABLE VULCANIZADO 3 X 14 AWG INDECO PRACTICABLE TTRF-70 (NLT-PC) (VULCANIZADO) NEGRO LCL.09.03","UND",5,null],["0C199787","ENCHUFE PLANO 2 X 15 AMP.+ L/TIERRA 125 V. COD.515PV LEVITON LCL.09.03","UND",5,null],["0C199791","ENGRASADORA 1077600 H C/MANGUERA + BOQUILLA SKF LCL.09.03","UND",5,null],["0C199790","ESCOBA DE NYLON ESCOBESTIA COLOR AZUL HUDE LCL.09.03","UND",5,null],["0C197787","JUEGO X 3 PCS. MACHOS MANUALES M4 X 0.70 URANGA LCL.29.01","UND",5,null],["0C197788","JUEGO X 3 PCS. MACHOS MANUALES M5 X 0.80 URANGA LCL.29.01","UND",5,null],["0C197790","JUEGO X 3 PCS. MACHOS MANUALES M8 X 1.25 URANGA LCL.29.01","UND",5,null],["0C199792","PROTECTOR DE CABLES DE 2 CANALES 100CM LARGO x 25CM ANCHO x 5CM ALTURA. MARCA TRANSIT. LCL.09.03","UND",5,null],["0C199795","PROYECTOR PORTÁTIL WESTMINSTER LCD FULL HD, 15000 LÚMENES, PROYECCIÓN 40-200\", CON ANDROID, NEGRO +","UND",5,null],["0C199789","RECOGEDOR DE PLASTICO COLOR AZUL C/FILO DE PVC HUDE LCL.09.03","UND",5,null],["0C199793","SOPLADORA / ASPIRADORA CON MOTOR DE 26 CC A GASOLINA, TRUPER 13047 | SOPLA-26T LCL.09.03","UND",5,null],["0C199785","TERMOMETRO INFRARROJO -30°C a +500°C FLUKE 62 MAX LCL.09.03","UND",5,null],["0C199788","TOMAC. PVC AEREO 2 X 15A. + TIERRA COD. 515CV AMARILLO LEVITON LCL.09.03","UND",5,null],["0C199783","ARANDELA PLANA M10 PAVONADALCL.09.03","UND",5,null],["0C199784","ARANDELA PRESION M-10 ZINCADO LCL.09.03","UND",5,null],["0C199778","GARRUCHA FIJA RED PU 100MM-INFORD-C47UPBW100R LCL.09.03","UND",5,null],["0C199779","GARRUCHA GIRAT. RED PU C/FRENO 100MM-INFORD_x0002_ LCL.09.03","UND",5,null],["0C199781","PERNO HEXAGONAL CL 10.9 DIN 933 RC M10 X 1.50 X 30 LCL.09.03","UND",5,null],["0C199782","TUERCA HEXAGONAL CL10 RC M10 X 1.50 LCL.09.03","UND",5,null],["0C199974","PERSIANA VERTICAL DE 90MM C/CABEZAL DE ALUMINO Y LAMINAS DE PVC CADENA PVC Y CUERDA DE 3.4","UND",5,null],["100601199966","PERSIANA VERTICAL DE 90MM C/CABEZAL DE ALUMINO Y LAMINAS DE PVC CADENA PVC Y CUERDA DE N2.","UND",5,null],["0C201258","CINTA TEFLON 1/2\" X 10 MTS. LCL.31.03","UND",5,0.6],["0C201259","LOCTITE 495 ADHESIVO SUPER BONDER APLIC.GENER.X 1 ONZS. LOC-495.50 LCL.31.03","UND",5,85.36],["0C201257","PISTOLA PARA LIMPIEZA DE MOTORES DE 45 - 70 PSI 19236 TRUPER LCL.31.03","UND",5,31.8],["0C199133","OVEROL INHERENTE 12 CAL COLOR AZUL MARINO CON CINTA REFLECTIVA MARCA ArcTex® ( TALLA: M)","UND",5,null],["0C202337","FAJAS OPTIBELT BX 90 LCL 15.04.26","UND",5,null],["100601203743","BOMBA DE CONDENSADO ALT. 20 PIES (TANQUE ALTO) 2LTS - SAUERMAN SI-1801 - 4725 -10021","UND",5,225.7],["0C204245","BLOQUEADOR BLOQUEO PARA VALVULA DE BOLA P/TUBERIAS DE ½\" - 2 ½\" LCL 21.06.2026","UND",5,35.5],["101001203847","KIT REGULADOR / MECANISMO DE CIERRE HELVEX SF 015-C","UND",5,73.44],["0C204244","RODILLO DE 3\" X 15/32\" (12.00 MM.) BLANCO TORO LCL 21.06.2026","UND",5,6.0],["100601199386","CANDADO PDL-38RD100 ROJO LOTO MASTER LCL.25.02","UND",5,30.61],["100601199698","CANDADO YALE DE 40 MM (SERIE 151 )","UND",5,35.44],["0C204996","FAJA DENTADA AX-93 MARCA JASON LCL.02.06","UND",5,56.49],["0C205361","LAMPARA LED TUBULAR T8 16W 6500K 220-240V G13 1200MM ECOFIT E MAINS PHILIPS LCL.10.06","UND",5,5.1],["0C205338","ADAPTADOR PVC 1/2\" C/ROSCA P/AGUA PAVCO LCL.09.06","UND",5,1.3],["0C205339","ADAPTADOR PVC 3/4\" C/ROSCA P/AGUA PAVCO LCL.09.06","UND",5,1.98],["0C205337","CINTA TEFLON DE 1/2\" X 10 MTS SHURTAPE LCL.09.06","UND",5,2.0],["0C205335","PINTURA SUPER GLOSS BLANCO ANYPSA LCL.09.06","UND",5,74.68],["0C205340","TAPON HEMBRA PVC 1/2\" PRESION C-10 PAVCO LCL.09.06","UND",5,1.5],["0C205341","TAPON HEMBRA PVC 3/4\" PRESION C-10 PAVCO LCL.09.06","UND",5,2.5],["0C205342","TAPON MACHO PVC 1/2\" C/ROSCA PAVCO LCL.09.06","UND",5,1.75],["0C205344","TUBO PVC 1/2\" C-10 PRESION PAVCO LCL.09.06","UND",5,15.1],["0C205343","TUBO PVC 3/4\" C-10 PRESION PAVCO LCL.09.06","UND",5,20.36],["0C205345","UNION SIMPLE PVC 1/2\" PRESION C-10 PAVCO LCL.09.06","UND",5,1.54],["0C205346","UNION SIMPLE PVC 3/4\" PRESION C-10 PAVCO LCL.09.06","UND",5,2.6],["10402205475","CONOS DE SEGURIDAD NARANJA 28\"","UND",5,null],["0C205336","CINTA MASKING TAPE DE 1\" X 60 YDS. AZUL 3M LCL.09.06","UND",5,8.0],["101503185582","MOTOGUADAÑA STIHL FS230","UND",5,null],["100601208646","MUÑECO PUBLICITARIO SEGUN MODELO DE 1.65 A 1.70 MTRS. CON DOS CAMBIOS CAPA Y SHORT.","UND",5,null],["0C199134","OVEROL INHERENTE 12 CAL COLOR AZUL MARINO CON CINTA REFLECTIVA MARCA ArcTex® ( TALLA: L)","UND",5,null],["100601198665","MANGUERA DE RIEGO TECNIFICADO ROLLO X 100 METROS DE 3/4\" LCL.16.02","UND",5,null],["0C199973","SILLON PRESIDENTE MALLA DAYTON MARCO NEGRO LCL.12.03","UND",5,null],["0C199794","SUPRESOR DE PICOS 6 TOMAS 90 CM COD. 14-515AB_x0002_0.9M OPALUX LCL.09.03","UND",5,null],["50102209741","PAPEL HIGENENICO SCOTT 6 X550 MTS / 30246070 -EMER -KC","UND",5,null],["50102209685","PAPEL TOALLA SCOTT NATURAL HOJA SENCILLA AIRFLEX 250 MT (30240064) - EMER -KC","RLL",5,null],["0C210175","CAMISA INHERENTE ATPV 11 CAL/CM2 AZUL ACERO BLUE C/LOGO INSTITUCIONAL MARCA ARCTEX T-L","UND",5,null],["0C210174","CAMISA INHERENTE ATPV 11 CAL/CM2 AZUL ACERO BLUE C/LOGO INSTITUCIONAL MARCA ARCTEX T-M","UND",5,null],["0C210173","CAMISA INHERENTE ATPV 11 CAL/CM2 AZUL ACERO BLUE C/LOGO INSTITUCIONAL MARCA ARCTEX T-S","UND",5,null],["0C210176","CAMISA INHERENTE ATPV 11 CAL/CM2 AZUL ACERO BLUE C/LOGO INSTITUCIONAL MARCA ARCTEX T-XL","UND",5,null],["0C210172","CAMISA INHERENTE ATPV 11 CAL/CM2 AZUL ACERO BLUE C/LOGO INSTITUCIONAL MARCA ARCTEX T-XS","UND",5,null],["0C210185","CASACA TÉRMICA INHERENTES ATPV 11 CAL/CM2 AZUL ACERO C/FORRO MARCA ARCTEX T-L","UND",5,null],["0C210186","CASACA TÉRMICA INHERENTES ATPV 11 CAL/CM2 AZUL ACERO C/FORRO MARCA ARCTEX T-XL","UND",5,null],["0C210180","PANTALÓN INHERENTE ATPV 11 CAL/CM2 AZUL ACERO MARCA ARCTEX T-L","UND",5,null],["0C210179","PANTALÓN INHERENTE ATPV 11 CAL/CM2 AZUL ACERO MARCA ARCTEX T-M","UND",5,null],["0C210178","PANTALÓN INHERENTE ATPV 11 CAL/CM2 AZUL ACERO MARCA ARCTEX T-S","UND",5,null],["0C210181","PANTALÓN INHERENTE ATPV 11 CAL/CM2 AZUL ACERO MARCA ARCTEX T-XL","UND",5,null],["0C210177","PANTALÓN INHERENTE ATPV 11 CAL/CM2 AZUL ACERO MARCA ARCTEX T-XS","UND",5,null],["100601211058","ANILLO DE CERA CON GUIA PARA INODORO VAINSA LCL 29.09.26","UND",5,null],["0C203092","GRASA LIQUIDA EN SPRAY HHS 2000 500 ML. WURTH LCL 27.04.26","UND",5,34.0],["0C198825","CANDADO PELIGRO CERRADO NO QUITAR AISLADO, 1 1/2\", 2 LLAVES, COLOR ROJO, MARCA LOTO MASTER PDL-38RD0","UND",5,null],["90501211730","SILLA GIRATORIA CELTA ALTA CAJERO COLOR NEGRO, RESISTE 120 KG.","UND",5,null],["100501200490","AIRE ACONDICIONADO 18000 BTU IMACO AC1877","UND",5,null],["0C196437","ABRAZADERA DE 3/4-LCL-20.12","UND",2,null],["0C196434","ARANDELA DE PRESION-LCL-20.12","UND",2,null],["0C196435","ARANDELA PLANA-LCL-20.12","UND",2,null],["0C196433","PERNO ZINCADO SEGÚN MUESTRA-LCL-20.12","UND",2,null],["0C196436","TUERCA HEXAGONAL-LCL-20.12","UND",2,null],["0C196431","EMPAQUETADURA PARA DESAGUE DE 2\"-LCL-20.12","UND",2,null],["0C196432","SIKA FLEX 11 FC-LCL-20.12","UND",2,null],["0C196430","TAPA DE REGISTRO DE 4\"-LCL-20.12","UND",2,null],["0C196371","RODAMIENTO RIGIDO DE BOLAS 6211 - 2RS1.LCL.24.12","UND",2,null],["0C196372","RODAMIENTO RIGIDO DE BOLAS 6309 - 2RS1/C3.LCL.24.12","UND",2,null],["0C196374","BASE SINCROMATO.LCL.24.12","GLN",2,null],["0C196376","BROCHA DE 2\".LCL.24.12","UND",2,null],["0C196379","ENCHUFE LEVINTON 1P MAS TIERRA.LCL.24.12","UND",2,null],["0C196373","PINTURA GLOSS AMARILLO.LCL.24.12","GLN",2,null],["0C196375","PINTURA VERDE GLOSS.LCL.24.12","GLN",2,null],["0C196377","RODILLO TORO ROSADO DE 2\".LCL.24.12","UND",2,null],["0C196378","ROLLO DE CABLE DE 3x16 INDECO.LCL.24.12","RLL",2,null],["0C196979","Desatorador de tambor de 7.6 m Truper LCL.16.01","UND",2,null],["0C196974","CABLE THW #14 LCL.16.01","MT",2,null],["0C196976","CAJA RECTANGULAR LCL.16.01","UND",2,null],["0C196975","CANALETAS DE 10 X 20 LCL.16.01","UND",2,null],["0C196973","INTERRUPTOR SIMPLE LCL.16.01","UND",2,null],["0C196978","SENSOR DE PRESENCIA LCL.16.01","UND",2,null],["0C196977","TARUGOS DE 1/4 LCL.16.01","UND",2,null],["0C196969","Cinta Maskingtape de 2\" LCL.16.01","UND",2,null],["0C196971","Escoba Hude LCL.16.01","UND",2,null],["0C196972","Pistola para Pintar Gravedad LVMP Vaso Aluminio, 2 mm, Truper LCL.16.01","UND",2,null],["0C196968","Plancha Galv. De 1mm espesor medidas 120x240 cm LCL.16.01","UND",2,null],["0C196970","Trapo industrial 20kg LCL.16.01","KG",2,null],["0C197109","ESPATULA DE 3\" LCL.20.01","UND",2,null],["0C197110","ESPATULA DE 5\" LCL.20.01","UND",2,null],["0C197112","LIJA PARA FIERRO #80 LCL.20.01","JGO",2,null],["0C197111","PINTURA SPRAY NEGRO MATE LCL.20.01","UND",2,null],["0C197108","PINTURA TRAFICO BLANCO LCL.20.01","GLN",2,null],["0C197113","RODILLO DE 3\" ROSADO TORO EPOXICO LCL.20.01","UND",2,null],["0C198048","CONTACTOR DE 40 A BOBINA 220V","UND",2,null],["0C195768","CONTACTOR 3P 12A KW 3 BOBINA 220VAC 1NA 4H_LCL.12.12","UND",2,null],["0C195771","Controlador digital de temperatura TIC-17RGTi Full Gauge_LCL.12.12","UND",2,null],["0C195775","Eje Para Sierra Copa_LCL.12.12","UND",2,null],["0C195769","RELAY ENCAPSULADO 8 PINES 220V AC CAMSCO_LCL.12.12","UND",2,null],["0C195773","Riel DIN simétrico con perforación 35x7.5x1mm_LCL.12.12","MT",2,null],["0C195770","SELECTOR 2 POSICIONES PLASTICO NEGRO_LCL.12.12","UND",2,null],["0C195774","Sierra copa para metal 1/2\"_LCL.12.12","UND",2,null],["0C195772","Terminal aislado hembra 7.6mm 16-14AWG_LCL.12.12","UND",2,null],["31175","MANTENIMIENTO DE CCTV REPARACION DE 4 TV (PANASONIC TH-42PV80L, SAMSUNG LN32A450C1, SONY XBR-49X707D, SONY KDL-60W605B)-SD","UND",2,null],["0C200516","RODAMIENTO 6206 - 2Z SKF LCL.20.03","UND",2,null],["0C200515","RODAMIENTO 6307 -2Z SKF LCL.20.03","UND",2,null],["0C200518","SECCIONADOR EN CAJA ,IP65, TRIPOLAR-32A 500V, EATO LCL.20.03","UND",2,null],["0C201230","PINTURA AMARILLO ANYPSA X3 LCL.30.03","GLN",2,null],["0C201232","PINTURA GLOSS VOLVO X3 ANYPSA LCL.30.03","GLN",2,null],["0C201231","PINTURA NEGRO ANYPSA X3 GLOSS LCL.30.03","GLN",2,null],["0C201234","Cinta Masking Tape Azul 3M, 24 mm x 54,8 m LCL.30.03","UND",2,null],["0C201235","Cinta Masking Tape Azul Werken 48mmx40m LCL.30.03","UND",2,null],["0C200517","SILICONA ALTA TEMERAURA - PERMATEX LCL.20.03","UND",2,null],["100601205821","FAJAS B42","UND",2,null],["0C208226","BOMBILLO INCANDECENTE 220V 15W","UND",2,null],["0C208227","DISPOSITIVO DE BLOQUEO PARA MENEQUES","UND",2,null],["0C208449","DESAGUE PUSH ACERO INOX","UND",2,null],["0C208448","TRAMPA EN P - 11/2 METUSA ACERO INOX","UND",2,null],["0C208229","Bidon de 20 litros con AGUA DESTILADA","UND",2,null],["0C208228","Bidon de 20 Litros de ETILENGLICOL (MEG)","UND",2,null],["31192","MANTENIMIENTO DE CAMPANAS EXTRACTORAS Y DUCTOS SERVICIO DE RECTIFICADO Y RELLENADO DE EJE. SEGUN MEDIDA DE CHUMACERA -DX_038_006","UND",2,null],["0C208760","CANDADO FORTE #70","UND",2,null],["0C208761","DUPLICADO DE LLAVES 6 UND","UND",2,null],["0C208450","SIKAFLEX 11 FC SIKA","UND",2,null],["101201195319","DURANTA LIMON","M2",2,null],["680016","FABRICACION DE SEÑALETICA, ACRILICOS, PLACAS FABRICACION DE LETRERO PUERTA DESLIZABLE / SELECCION DE OPCION-SDX_038_017","UND",2,null],["0C210067","FLOW SWITCH FQS U30G SAGInoMIYA UL /110-220 LCL.07.09","UND",2,null],["31170","MANTENIMIENTO DE AIRE ACONDICIONADO Y/O EXTRACTOR DE AIRE SUMINISTRO DE SAL PARA PARA TANQUE SALMUERA - SALA CHILLER- MES NOVIEMBRE 2026-","UND",2,null],["0C213224","ANDADO D/SEGURIDAD NO AISLADO 1 1/2\" ROJO PDL-38RD 100 LOTO MASTER LCL.30.10","UND",0,39.0],["0C213225","CANDADO D/SEGURIDAD AISLADO 1 1/2\" ROJO PDL-38RD 005 LOTO MASTER LCL.30.10","UND",0,45.0],["0C213226","FAJA GATES A48 LCL.30.10","UND",0,18.5],["0C213227","FAJA OPTIBELT A46 LCL.30.10","UND",0,25.0],["0C213228","FAJA OPTIBELT B71 LCL.30.10","UND",0,47.0],["0C213229","FAJA OPTIBELT B 70 LCL.30.10","UND",0,45.0],["0C213230","PEGAMENTO P/PVC 1/4 GLN AZUL OATEY LCL.30.10","UND",0,79.0],["0C213231","SOLDIMIX 10 MINUTOS 35GR LCL.30.10","UND",0,10.8],["0C213232","TERMINAL P/CABLE TIPO MANGUITO ROJO N° 16 AWG (1.5MM) LCL.30.10","CTO",0,3.5],["0C213233","CONECTOR RECTO HERM. EMT LIQUID TIGHT 3/4\" LCL.30.10","UND",0,3.5],["0C213234","HOJA DE SIERRA SANDFLEX 1/2 X 12\" 24 D LCL.30.10","UND",0,8.1],["0C213235","RODILLO 7\" BLANCO TORO LCL.30.10","UND",0,13.4],["0C213236","EXTENSION 3 TOMAS TIERRA 3X16AWG 15MT ANARANJADO WERKEN LCL.30.10","UND",0,116.0],["0C213237","NIPLE DE F°G° 1/2\" X 4\" LCL.30.10","UND",0,7.2],["0C213238","NIPLE DE F°G° 1/2\" X 2\" LCL.30.10","UND",0,4.2],["0C213239","DISCO DIAMANTADO ULTRA FINO (CERAMICOS) 4 1/2\" KM-1722 KAMASA LCL.30.10","UND",0,23.5],["0C213240","CARDA TIPO BROCHA 1\" PARA TALADRO 11595 TRUPER LCL.30.10","UND",0,6.5],["0C213241","ESPATULA FLEXIBLE MANGO COMFORT GRIP 4\" 15852 TRUPER LCL.30.10","UND",0,13.7],["0C213242","ESPATULA FLEXIBLE MANGO COMFORT GRIP 2\" 15850 TRUPER LCL.30.10","UND",0,10.8],["0C213243","GARR.GIRAT.4” X 2” C/FRENO RUEDA EN POLIURETANO RODAJE 6204 ROJO C/NEGRO SOPORTE GIRAT EN ACERO GALV. C/CARGA 200 KG LCL.30.10","UND",0,72.0],["0C213244","GARR.FIJA 4” X 2 C/RUEDA EN POLIURETANO RODAJE 6204 ROJO C/NEGRO SOPORTE EN ACERO GALV. C/CARGA 200 K/G LCL.30.10","UND",0,49.0],["0C213245","PISTOLA PINTAR ELECTRICA 220V 450W TT3506 TOTAL LCL.30.10","UND",0,129.0],["0C213246","PROTECTOR ESQUINERO DE COLUMNA SIMPLE 80X10X1CM ESP LCL.30.10","UND",0,26.0],["0C213247","PROTECTOR D/ESPUMA ESQUINA 50X20CM AMARILLO LCL.30.10","UND",0,41.0],["020192559","REGLA METAL 30CM DIMERC","UND",1,2.66],["0201212469","CUCHILLA ECO 18MM ARTESCO","UND",1,2.9],["0C210655","CARTULINA A4 HILO BCO 180G X 100 UNID FAVINI","UND",1,54.65],["0C210966","ACEITE CARRIER PARA COMPRESOR SW220 X IGLN p903230 LCL.23.09","GLN",0,1238.0],["0C210967","MANOMETRO 0-160 PSI 4\" DIAL, 1/4\" NPT- OR203L CIGLtCERINA ACERO INOX - CONEX.BR LCL.23.09","UND",0,195.0],["0C210968","SOLDIMIX EXTRA FUERTE 35GR LCL.23.09","UND",0,10.8],["0C210970","FUSIBLE VIDRIO 5X20MM 2A 250V FAST ACTING (RAPIDO) GMA-2-R BUSSMANN LCL.23.09","UND",0,6.0],["0C210971","FUSIBLE VIDRIO 5X20MM 3A 250V FAST ACTING (RAPIDO) GMA-3-R BUSSMANN LCL.23.09","UND",0,6.0],["0C210972","FUSIBLE VIDRIO 5X20MM 6.3A 250V FAST ACTING (RAPIDO) 021706.3 LITTELFUSE LCL.23.09","UND",0,9.0],["0C210973","FUSIBLE AUTOMOTRIZ ESTANDAR 3A ATO3 LITTELFUSE LCL.23.09","UND",0,2.7],["0C210975","CINTA DE SEÑALIZACION 2\" X 36 YDS AMARILLA/NEGRO VP415 SHURTAPE LCL.23.09","RLL",0,22.0],["0C210976","DISCO FLAP 4 1/2\" GRANO 80 NORTON LCL.23.09","UND",0,14.0],["0C210977","DESATORADOR DE BAÑO NECO LCL.23.09","UND",0,24.9],["0C210978","BORNERA DE REGLETA PVC BLANCO 10MM 10AMP LCL.23.09","UND",0,4.9],["0C210979","ARENA GRUESA (40KG) LCL.23.09","SCO",0,10.0],["0C210980","RODILLO 7\" AMARILLO/NARANJA TORO LCL.23.09","UND",0,14.9],["0C210981","TERMINAL MACHO T/AISLADO 10-12 AMARILLO LCL.23.09","CTO",0,17.0],["0C210982","TERMINAL HEMBRA T/AISLADO 10-12 AMARILLO LCL.23.09","CTO",0,18.0],["0C210983","TERMINAL T/PIGGY AZUL 16-14AWG LCL.23.09","CTO",0,22.0],["0C210984","TERMINAL AIS. HORQUILLA/UÑA P/CAB 16 Y 14 AZUL LCL.23.09","CTO",0,14.0],["0C210985","TERMINAL AIS. HORQUILLA/UÑA P/CAB 22-16 AWG ROJO LCL.23.09","CTO",0,11.0],["0C210986","SIKA PEGA RAPIDO - SIKAFAST 201 (20GR) LCL.23.09","UND",0,13.2],["0C210987","GAS REFRIGERANTE R134A ECOLOGICO (PRESENTACION BALON 13.6 KG) - DONGYUE - R134A - - - 14102 LCL.23.09","UND",4,644.07],["0C210988","COMPRESOR ROTATIVO R410 ECOLOGICO DE 17,248 BTUH (PARA EQ. 18,000 BTUH 1.5HP) 220V/1F/60HZ - GMCC - PA170M2A - - - 14519 LCL.23.09","UND",4,711.86],["0C210989","ACEITE CARRIER PARA COMPRESOR SW220 X 1GLN P9032301 MARCA \"TOTALINE\" LCL.23.09","GLN",2,1219.2],["0C211989","PALETA PLASTICA DE PARE Y SIGA LCL.15.10","UND",0,25.5],["0C211990","CHAPAS CROMADAS T/CUADRADA/PARCHE LCL.15.10","UND",0,12.0],["0C211991","CORREDERA TELESCOPICA 16\" 40CM (2PZS) SEMI PESADO LCL.15.10","JGO",0,11.5],["0C211992","CHAPAS CROMADAS CIERRE FRONTAL 600MM LCL.15.10","UND",0,24.0],["0C211993","CHAPAS CROMADAS CIERRE FRONTAL 1200MM LCL.15.10","UND",0,29.0],["0C211994","CORREDERA TELESCOPICA 26\" 60CM (2PZS) SUPER PESADO LCL.15.10","JGO",0,20.0],["0C211815","RIEL TIPO UNISTRUT BAJO DE 41 X 21 X 1.5 X 2.40 MT LCL.13.10","UND",0,32.0],["0C211816","ESPARRAGO G2 ZINCADO 3/8\" X 1 MT LCL.13.10","MT",0,6.9],["0C211817","TUERCA HEXAGONAL ZINCADA 3/8\" LCL.13.10","UND",0,0.25],["0C211818","ARANDELA PLANA ZINCADA 3/8\" LCL.13.10","UND",0,0.25],["0C211819","TACO METALICO DE EXPANSION 3/8\" LCL.13.10","UND",0,0.8],["0C209867","COMPRESOR 3.0HP 220V/1HP/60HZ, MOD:ZS21KAE-PFV SCROLL, R507/R404/R134A/R407C/R449A","UND",0,3695.0],["0C209868","RUN CAPACITOR P/ZS21PFV","UND",0,116.0],["0C209869","START CAPACITOR P/ZS 11,15,21,29 PFV","UND",0,90.0],["0C209870","RELE POTENCIAL P/ZS 11,15,21,29,38 PFV","UND",0,99.0],["0C209871","MOLDED PLUG P/BOMS-600 Y-618","UND",0,102.0],["0C209872","CALENTADOR DE CARTER P/ZS21-38 220V","UND",0,197.0],["0C208589","GAS MAPP BOTELLA DE 14.1 ONZAS - - - ICOOL - - - - 39536","UND",4,37.29],["0C208590","UNION DE COBRE SOLDABLE DE 7/8 - EVERWELL - 100-78 - - - 25886","UND",4,4.75],["0C208591","SOLDADURA DE PLATA AL 5% - HARRIS - 5% - - - 13666","UND",4,18.64],["0C207366","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T36","UND",3,86.99],["0C207367","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T37","UND",3,86.99],["0C207368","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T38","UND",3,86.99],["0C207369","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T39","UND",3,86.99],["0C207370","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T40","UND",3,86.99],["0C207371","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T41","UND",3,86.99],["0C207372","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T42","UND",3,86.99],["0C207373","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T43","UND",3,86.99],["0C207374","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T44","UND",3,86.99],["0C207375","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T45","UND",3,86.99],["010106206760","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T46","UND",3,86.99],["010106207412","BOTA DUNLOP JOBGUARD FULL SAFETY NEGRO -NA2HD01 T47","UND",3,86.99],["0C208912","DISPENSADOR DE AGUA C/GABINETE GRIS MOD. EA11SR ELECTROLUX","UND",5,665.09],["0C208913","PISTOLA CALOR INALAMBRICA TBLI20065 COMBO X 3 PZAS","UND",5,160.1],["0C208914","IMPRESORA MULTIFUNCIONAL EPSON ECOTANK L3350 WIFI P/N: C11CL62301","UND",5,781.9],["0C208915","MEMORIA USB 128GV KINGSTON EXODIA YELLOW","UND",5,44.5],["0C208916","escáner Detector De Materiales Profesional Bosch Gms 120-27","UND",2,450.0],["0C208917","EXTENSION DE CARRETE 3 TOMAS 20 METROS ( HALUX /REDBO)","UND",2,230.0],["0C208918","LLAVE DE LAVADERO PARA PARED VAINSA","UND",2,162.5],["0C208919","APLICADOR DE SILICONA REFORZADA TRUPER 101280","UND",2,42.05],["0C208920","CINTA MASKING TAPE AZUL 1\" x 60 yardas","UND",0,8.0]]};
+
+var CAT=SNAP.i.map(function(r){return {c:r[0],n:r[1],u:r[2],pv:SNAP.p[r[3]],pr:r[4]}});
+var fuente='Catálogo incluido en el archivo',enLinea=false;
+var rows=[],uid=1,open=null,hi=0;
+
+function corto(p){
+  var s=(p||'').toUpperCase();
+  if(s.indexOf('ABYSEM')>-1)return 'ABYSEM';
+  if(s.indexOf('DIMERC')>-1)return 'DIMERC';
+  if(s.indexOf('FERRETERA')>-1)return 'S. D. FERRETERA';
+  if(s.indexOf('INGENIERIA')>-1||s.indexOf('INGENIERÍA')>-1)return 'INGENIERÍA';
+  if(s.indexOf('REFRIWORLD')>-1)return 'REFRIWORLD';
+  if(s.indexOf('PROSAC')>-1)return 'PROSAC';
+  return p||'SIN PROVEEDOR';
+}
+function nz(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function money(v){return 'S/ '+v.toFixed(2);}
+function rx(w){
+  var e=w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  var m={a:'[aáàäâ]',e:'[eéèëê]',i:'[iíìïî]',o:'[oóòöô]',u:'[uúùüû]',n:'[nñ]'};
+  return e.replace(/[aeioun]/gi,function(ch){return m[ch.toLowerCase()];});
+}
+function hl(t,ws){
+  if(!ws.length)return esc(t);
+  var re=new RegExp('('+ws.map(rx).join('|')+')','ig'),parts=String(t).split(re),o='';
+  for(var i=0;i<parts.length;i++){o+=(i%2)?'<mark>'+esc(parts[i])+'</mark>':esc(parts[i]);}
+  return o;
+}
+function find(c){for(var i=0;i<CAT.length;i++){if(CAT[i].c===c)return CAT[i];}return null;}
+function $(id){return document.getElementById(id);}
+
+function save(){try{localStorage.setItem('catped_v11',JSON.stringify(rows.filter(function(r){return r.c;}).map(function(r){return {c:r.c,q:r.q};})));}catch(e){}}
+function load(){
+  try{var s=JSON.parse(localStorage.getItem('catped_v11')||'[]');
+    s.forEach(function(r){if(find(r.c))rows.push({id:uid++,c:r.c,q:r.q>0?r.q:1});});}catch(e){}
+}
+
+function prepare(){
+  CAT.forEach(function(x){x.h=nz(x.c+' '+x.n+' '+x.pv+' '+corto(x.pv));});
+  var sel=$('pf'),cur=sel.value,seen={},o='<option value="">Todos los proveedores</option>';
+  CAT.forEach(function(x){seen[corto(x.pv)]=1;});
+  Object.keys(seen).sort().forEach(function(k){o+='<option value="'+esc(k)+'">'+esc(k)+'</option>';});
+  sel.innerHTML=o;sel.value=cur;
+  var conP=CAT.filter(function(x){return x.pr!=null;}).length;
+  $('dot').className='d'+(enLinea?' on':'');
+  $('st1').textContent=enLinea?'Conectado a la base de datos':'Catálogo incluido en el archivo';
+  $('st2').textContent=CAT.length+' productos · '+conP+' con precio';
+  $('src').textContent=fuente;
+  rows=rows.filter(function(r){return !r.c||find(r.c);});
+}
+
+function matches(q,pf){
+  var ws=nz(q).split(/\s+/).filter(Boolean),out=[];
+  if(!ws.length)return {list:[],total:0};
+  for(var i=0;i<CAT.length;i++){
+    var x=CAT[i];
+    if(pf&&corto(x.pv)!==pf)continue;
+    var ok=true;for(var k=0;k<ws.length;k++){if(x.h.indexOf(ws[k])<0){ok=false;break;}}
+    if(ok)out.push(x);
+  }
+  return {list:out,total:out.length};
+}
+
+function drawItems(){
+  var h='';
+  if(!rows.length)h='<div class="empty">Aún no hay ítems. Haz clic en "+ Agregar ítem" para comenzar.</div>';
+  rows.forEach(function(r){
+    var x=r.c?find(r.c):null;
+    if(!x){
+      h+='<div class="item"><div class="grid srch"><div class="sb"><input type="text" data-s="'+r.id+'" placeholder="Escribe código, producto o proveedor" autocomplete="off" aria-label="Buscar producto"><div class="dd" id="dd'+r.id+'" style="display:none"></div></div><div><button class="x" data-del="'+r.id+'" aria-label="Quitar ítem">×</button></div></div></div>';
+    }else{
+      var line=x.pr==null?null:x.pr*r.q;
+      h+='<div class="item"><div class="grid"><div class="g-p pn" data-chg="'+r.id+'" title="Cambiar producto">'+esc(x.n)+'</div><div class="g-c cod">'+esc(x.c)+'</div><div class="g-u und">'+esc(x.u||'')+'</div><div class="g-v"><span class="pv" title="'+esc(x.pv)+'">'+esc(corto(x.pv))+'</span></div><div class="g-m money">'+(x.pr==null?'<span class="sp">Sin precio</span>':money(x.pr))+'</div><div class="g-q"><input type="number" class="qty" min="1" step="1" value="'+r.q+'" data-q="'+r.id+'" aria-label="Cantidad"></div><div class="g-x"><button class="x" data-del="'+r.id+'" aria-label="Quitar ítem">×</button></div></div></div>';
+    }
+  });
+  $('items').innerHTML=h;
+  totals();
+  if(open){var inp=document.querySelector('[data-s="'+open+'"]');if(inp){inp.focus();}}
+}
+
+function totals(){
+  var n=0,tot=0,sinP=0,ids=0;
+  rows.forEach(function(r){var x=r.c?find(r.c):null;if(!x)return;ids++;n+=r.q;if(x.pr==null)sinP++;else tot+=x.pr*r.q;});
+  $('nit').textContent=ids;
+  $('tot').textContent=money(tot);
+  $('reg').disabled=!ids||!!selMsg();
+  drawBudget(tot);
+  var hint=$('hint');
+  if(!ids){hint.className='hint';hint.textContent='Agrega al menos un ítem para poder registrar el pedido.';}
+  else if(selMsg()){hint.className='hint w';hint.textContent=selMsg();}
+  else if(sinP){hint.className='hint w';hint.textContent=sinP+(sinP===1?' ítem sin precio no suma al total.':' ítems sin precio no suman al total.');}
+  else{hint.className='hint';hint.textContent='';}
+}
+
+function showDD(id,val){
+  var dd=$('dd'+id);if(!dd)return;
+  var q=val.trim();
+  if(!q){dd.style.display='none';return;}
+  var m=matches(q,pfEff()),raw=q.split(/\s+/),show=m.list.slice(0,12),h='';
+  hi=0;
+  show.forEach(function(x,i){
+    h+='<div class="opt'+(i===0?' on':'')+'" data-pick="'+id+'|'+esc(x.c)+'"><span class="t">'+hl(x.n,raw)+'</span><span class="p">'+(x.pr==null?'<span class="sp">Sin precio</span>':money(x.pr))+'</span><span class="m">'+hl(x.c,raw)+' · '+esc(x.u||'')+' · '+esc(corto(x.pv))+'</span></div>';
+  });
+  if(!show.length)h='<div class="none">No hay resultados. Prueba con otra palabra.</div>';
+  else if(m.total>show.length)h+='<div class="none">Mostrando '+show.length+' de '+m.total+'. Escribe más para afinar.</div>';
+  dd.innerHTML=h;dd.style.display='block';
+}
+function pick(id,c){
+  var r=rows.filter(function(z){return z.id===id;})[0];if(!r)return;
+  var dup=rows.filter(function(z){return z.c===c&&z.id!==id;})[0];
+  if(dup){dup.q++;rows=rows.filter(function(z){return z.id!==id;});}
+  else{r.c=c;if(!r.q)r.q=1;}
+  open=null;save();drawItems();
+}
+
+document.addEventListener('input',function(e){
+  var t=e.target;
+  if(t.getAttribute('data-s')){open=+t.getAttribute('data-s');showDD(open,t.value);}
+  else if(t.getAttribute('data-q')){
+    var r=rows.filter(function(z){return z.id===+t.getAttribute('data-q');})[0];
+    var v=parseInt(t.value,10);if(r&&v>0){r.q=v;save();totals();}
+  }
+});
+document.addEventListener('change',function(e){
+  var t=e.target;
+  if(t.getAttribute('data-q')){var r=rows.filter(function(z){return z.id===+t.getAttribute('data-q');})[0];if(r&&!(parseInt(t.value,10)>0)){t.value=r.q;}}
+});
+document.addEventListener('keydown',function(e){
+  var t=e.target,id=t.getAttribute&&t.getAttribute('data-s');
+  if(!id)return;
+  var dd=$('dd'+id),opts=dd?dd.querySelectorAll('.opt'):[];
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+    if(!opts.length)return;e.preventDefault();
+    opts[hi]&&opts[hi].classList.remove('on');
+    hi=(hi+(e.key==='ArrowDown'?1:-1)+opts.length)%opts.length;
+    opts[hi].classList.add('on');opts[hi].scrollIntoView({block:'nearest'});
+  }else if(e.key==='Enter'){
+    if(opts[hi]){e.preventDefault();var p=opts[hi].getAttribute('data-pick').split('|');pick(+p[0],p[1]);}
+  }else if(e.key==='Escape'){if(dd)dd.style.display='none';}
+});
+document.addEventListener('click',function(e){
+  var t=e.target;
+  var o=t.closest('[data-pick]');
+  if(o){var p=o.getAttribute('data-pick').split('|');pick(+p[0],p.slice(1).join('|'));return;}
+  var d=t.closest('[data-del]');
+  if(d){var id=+d.getAttribute('data-del');rows=rows.filter(function(z){return z.id!==id;});if(open===id)open=null;save();drawItems();return;}
+  var c=t.closest('[data-chg]');
+  if(c){var rid=+c.getAttribute('data-chg'),r=rows.filter(function(z){return z.id===rid;})[0];if(r){r.c=null;open=rid;drawItems();}return;}
+  if(!t.closest('.sb')){document.querySelectorAll('.dd').forEach(function(x){x.style.display='none';});}
+});
+$('add').addEventListener('click',function(){
+  if(!sel.t){var hh=$('hint');hh.className='hint w';hh.textContent='Elige primero el tipo de pedido.';return;}
+  var empty=rows.filter(function(r){return !r.c;})[0];
+  if(empty){open=empty.id;drawItems();return;}
+  var r={id:uid++,c:null,q:1};rows.push(r);open=r.id;drawItems();
+});
+$('pf').addEventListener('change',function(){var i=document.querySelector('[data-s="'+open+'"]');if(i)showDD(open,i.value);});
+$('clr').addEventListener('click',function(){
+  if(!rows.length)return;
+  if(confirm('¿Limpiar la pantalla? Se borrarán todos los ítems del pedido.')){rows=[];open=null;save();drawItems();}
+});
+
+function fmtF(iso){var d=new Date(iso),p=function(n){return (n<10?'0':'')+n;};return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}
+function exportExcel(rec){
+  if(typeof XLSX==='undefined')return false;
+  var by={};
+  rec.it.forEach(function(it){var x=find(it.c);if(x){(by[x.pv]=by[x.pv]||[]).push({x:x,q:it.q,pr:it.pr});}});
+  var wb=XLSX.utils.book_new(),res=[['Tipo',TIPOS[rec.tp||'PREVENTIVO']],['Área',rec.a],['Responsable',rec.r||''],['Fecha',fmtF(rec.f)],[],['Proveedor','Ítems','Subtotal sin IGV (S/)']],used={};
+  Object.keys(by).sort().forEach(function(p){
+    var sh=[['Código','Producto','Und.','Cantidad','Precio unit. sin IGV (S/)','Subtotal (S/)']],sub=0;
+    by[p].forEach(function(it,i){
+      var r=i+2;
+      if(it.pr==null){sh.push([it.x.c,it.x.n,it.x.u,it.q,'','']);}
+      else{sh.push([it.x.c,it.x.n,it.x.u,it.q,it.pr,{t:'n',f:'D'+r+'*E'+r,v:r2(it.pr*it.q)}]);sub+=it.pr*it.q;}
+    });
+    sh.push(['','','','','Total',{t:'n',f:'SUM(F2:F'+(sh.length)+')',v:r2(sub)}]);
+    var ws=XLSX.utils.aoa_to_sheet(sh);
+    ws['!cols']=[{wch:16},{wch:60},{wch:7},{wch:10},{wch:24},{wch:14}];
+    var nm=corto(p).replace(/[\\\/\?\*\[\]:\.]/g,'').slice(0,28)||'Proveedor',k=nm,j=2;
+    while(used[k]){k=nm.slice(0,26)+' '+j;j++;}used[k]=1;
+    XLSX.utils.book_append_sheet(wb,ws,k);
+    res.push([p,by[p].length,r2(sub)]);
+  });
+  res.push([]);res.push(['Total del pedido','',rec.t]);
+  var wr=XLSX.utils.aoa_to_sheet(res);wr['!cols']=[{wch:50},{wch:22},{wch:22}];
+  XLSX.utils.book_append_sheet(wb,wr,'Resumen');
+  var d=new Date(rec.f),pad=function(n){return (n<10?'0':'')+n;};
+  XLSX.writeFile(wb,'pedido_'+(rec.tp||'PREVENTIVO')+'_'+rec.a.replace(/[^A-Za-z0-9]+/g,'_')+'_'+d.getFullYear()+pad(d.getMonth()+1)+pad(d.getDate())+'_'+pad(d.getHours())+pad(d.getMinutes())+'.xlsx');
+  return true;
+}
+function registrar(){
+  var hint=$('hint'),items=[],total=0;
+  rows.forEach(function(r){var x=r.c?find(r.c):null;if(!x)return;items.push({c:x.c,q:r.q,pr:x.pr});if(x.pr!=null)total+=x.pr*r.q;});
+  if(!items.length)return;
+  var sm=selMsg();
+  if(sm){hint.className='hint w';hint.textContent=sm;return;}
+  total=r2(total);
+  var bi=budgetInfo();
+  if(bi&&bi.gasto+total>bi.tope){
+    if(!confirm('Este pedido supera el presupuesto por '+money(r2(bi.gasto+total-bi.tope))+'. ¿Registrar de todos modos?'))return;
+  }
+  var rec={id:Date.now(),f:new Date().toISOString(),mes:mesKey(),tp:sel.t,a:sel.a,r:sel.r,t:total,n:items.length,it:items};
+  hist.push(rec);saveJ('catped_hist',hist);
+  var ok=exportExcel(rec);
+  rows=[];open=null;save();drawItems();
+  var b2=budgetInfo();
+  hint.className='hint ok';
+  hint.textContent='Pedido registrado · '+TIPOS[rec.tp]+' · '+rec.a+': '+money(total)+'.'+(b2?(' Gastado del mes: '+money(b2.gasto)+' de '+money(b2.tope)+'.'):'')+(ok?'':' No se pudo generar el Excel (revisa tu conexión).');
+}
+$('reg').addEventListener('click',registrar);
+
+function loadJ(k,d){try{var v=JSON.parse(localStorage.getItem(k));return v==null?d:v;}catch(e){return d;}}
+function saveJ(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}}
+var TIPOS={PREVENTIVO:'Preventivo',CORRECTIVO:'Correctivo',OFICINA:'Artículos de oficina'};
+var areas=loadJ('catped_areas',null)||[{n:'ADMINISTRACION',r:[],prev:false,t:null},{n:'HARD',r:[],prev:true,t:1000},{n:'HSE',r:[],prev:false,t:null},{n:'HVAC',r:['RONALD VELIZ'],prev:true,t:1700},{n:'SOFT',r:[],prev:false,t:null}];
+areas.forEach(function(a){if(typeof a.r==='string')a.r=a.r?[a.r]:[];if(!Array.isArray(a.r))a.r=[];if(a.prev===undefined)a.prev=!!a.t;});
+var cfg=loadJ('catped_cfg',{of:470}),pfWas=false;
+var hist=loadJ('catped_hist',[]),sel=loadJ('catped_sel',{t:'',a:'',r:''}),arEdit=null;
+if(!sel.t)sel.t='';
+function r2(v){return Math.round(v*100)/100;}
+function mesKey(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()<9?'0':'')+(d.getMonth()+1);}
+function areaObj(n){return areas.filter(function(a){return a.n===n;})[0]||null;}
+function gastado(n){var g=0;hist.forEach(function(h){if(h.mes===mesKey()&&h.a===n&&(h.tp||'PREVENTIVO')==='PREVENTIVO')g+=h.t;});return r2(g);}
+function gastadoO(){var g=0;hist.forEach(function(h){if(h.mes===mesKey()&&h.tp==='OFICINA')g+=h.t;});return r2(g);}
+function selMsg(){
+  if(!sel.t)return 'Elige el tipo de pedido para poder registrarlo.';
+  if(!sel.a)return 'Elige el área para poder registrar el pedido.';
+  var a=areaObj(sel.a);
+  if(a&&a.r.length>1&&!sel.r)return 'Elige quién solicita para poder registrar el pedido.';
+  return '';
+}
+function pfEff(){return sel.t==='OFICINA'?'DIMERC':$('pf').value;}
+function drawArea(){
+  var o='<option value="">Selecciona el tipo de pedido</option>';
+  Object.keys(TIPOS).forEach(function(k){o+='<option value="'+k+'">'+TIPOS[k]+'</option>';});
+  $('tipo').innerHTML=o;$('tipo').value=sel.t||'';
+  var lst=areas.filter(function(a){return sel.t!=='PREVENTIVO'||a.prev;}),ao='<option value="">Selecciona un área</option>';
+  lst.forEach(function(a){ao+='<option value="'+esc(a.n)+'">'+esc(a.n)+'</option>';});
+  $('area').innerHTML=ao;
+  if(sel.a&&!lst.some(function(a){return a.n===sel.a;}))sel.a='';
+  $('area').value=sel.a;
+  var a=areaObj(sel.a),rs=a?a.r:[];
+  if(sel.r&&rs.indexOf(sel.r)<0)sel.r='';
+  if(rs.length===1)sel.r=rs[0];
+  var ro='<option value="">'+(!a?'Selecciona un área':(rs.length?'Selecciona responsable':'Sin responsable registrado'))+'</option>';
+  rs.forEach(function(n){ro+='<option value="'+esc(n)+'">'+esc(n)+'</option>';});
+  $('resp').innerHTML=ro;$('resp').value=sel.r||'';$('resp').disabled=!rs.length;
+  var of=sel.t==='OFICINA';$('pf').disabled=of;
+  if(of)$('pf').value='DIMERC';else if(pfWas)$('pf').value='';
+  pfWas=of;
+  saveJ('catped_sel',sel);
+}
+function budgetInfo(){
+  if(sel.t==='PREVENTIVO'){var a=areaObj(sel.a);if(!a||!a.prev||!a.t)return null;return {title:'Presupuesto preventivo '+a.n,tope:a.t,gasto:gastado(a.n)};}
+  if(sel.t==='OFICINA'){if(!cfg.of)return null;return {title:'Presupuesto artículos de oficina (compartido)',tope:cfg.of,gasto:gastadoO()};}
+  return null;
+}
+function drawBudget(cur){
+  var bi=budgetInfo(),b=$('bud');
+  if(!bi){b.style.display='none';return;}
+  var tot=r2(bi.gasto+cur),pct=tot/bi.tope*100,rest=r2(bi.tope-tot),cl=pct>100?'o':(pct>=80?'w':'');
+  b.style.display='block';
+  $('budT').textContent=bi.title;
+  $('budN').textContent=money(tot)+' de '+money(bi.tope);
+  $('budF').style.width=Math.min(100,pct)+'%';$('budF').className=cl;
+  var m=$('budM');m.className='m '+cl;
+  if(pct>100)m.textContent='Te pasas del presupuesto por '+money(r2(-rest))+'.';
+  else if(pct>=80)m.textContent='Atención: te quedan '+money(rest)+' ('+Math.round(rest/bi.tope*100)+'% del presupuesto).';
+  else m.textContent='Te quedan '+money(rest)+' ('+Math.round(rest/bi.tope*100)+'% del presupuesto).';
+}
+$('tipo').addEventListener('change',function(){
+  var nv=$('tipo').value;
+  if(nv!==sel.t&&rows.some(function(r){return r.c;})){
+    if(!confirm('Al cambiar el tipo de pedido se limpiará el pedido actual. ¿Continuar?')){$('tipo').value=sel.t||'';return;}
+    rows=[];open=null;save();
+  }
+  sel.t=nv;drawArea();drawItems();
+});
+$('area').addEventListener('change',function(){sel.a=$('area').value;sel.r='';drawArea();totals();});
+$('resp').addEventListener('change',function(){sel.r=$('resp').value;saveJ('catped_sel',sel);totals();});
+
+function arDraw(){
+  var h='';
+  areas.forEach(function(a){
+    h+='<div class="arow a5"><span style="font-weight:600">'+esc(a.n)+'</span><span>'+(a.r.length?esc(a.r.join(', ')):'<span class="und">Sin responsable</span>')+'</span><span class="money">'+(!a.prev?'<span class="und">No pide preventivo</span>':(a.t?money(a.t):'<span class="und">Sin tope</span>'))+'</span><span class="money">'+(a.prev?money(gastado(a.n)):'<span class="und">—</span>')+'</span><button data-aedit="'+esc(a.n)+'">Editar</button></div>';
+  });
+  $('arList').innerHTML=h;
+}
+function ofDraw(){
+  $('ofTop').value=cfg.of||'';
+  $('ofgas').textContent='Gastado este mes: '+money(gastadoO())+(cfg.of?(' de '+money(cfg.of)):' (sin tope)');
+}
+function hDraw(){
+  var m=mesKey(),list=hist.filter(function(x){return x.mes===m;}).sort(function(a,b){return b.id-a.id;}),h='';
+  list.forEach(function(x){
+    h+='<div class="arow a5"><span class="cod">'+esc(fmtF(x.f))+'</span><span style="font-weight:600">'+esc(TIPOS[x.tp||'PREVENTIVO'])+' · '+esc(x.a)+(x.r?' · '+esc(x.r):'')+'</span><span class="money">'+money(x.t)+'</span><span class="und">'+x.n+(x.n===1?' ítem':' ítems')+'</span><button data-anul="'+x.id+'">Anular</button></div>';
+  });
+  $('hList').innerHTML=h||'<div class="empty" style="margin-top:8px">No hay pedidos registrados este mes.</div>';
+  ofDraw();
+}
+function openArea(n){
+  arEdit=n;var a=n?areaObj(n):null;
+  $('arTit').textContent=a?'Editar área':'Nueva área';
+  $('arNom').value=a?a.n:'';$('arNom').readOnly=!!a;
+  $('arRes').value=a?a.r.join('\n'):'';
+  $('arPrev').checked=a?!!a.prev:false;
+  $('arTopW').style.display=$('arPrev').checked?'block':'none';
+  $('arTop').value=(a&&a.t)?a.t:'';
+  $('arErr').textContent='';show('mArea',true);(a?$('arRes'):$('arNom')).focus();
+}
+function saveArea(){
+  var err=$('arErr'),nuevo=!arEdit;
+  var nom=arEdit||$('arNom').value.trim().toUpperCase().replace(/\s+/g,' ');
+  var rs=[],seen={};
+  $('arRes').value.split(/\n/).forEach(function(l){var n=l.trim().toUpperCase().replace(/\s+/g,' ');if(n&&!seen[n]){seen[n]=1;rs.push(n);}});
+  var prev=$('arPrev').checked,ts=$('arTop').value.trim().replace(',','.'),t=null;
+  if(!nom){err.textContent='Escribe el nombre del área.';return;}
+  if(nuevo&&areaObj(nom)){err.textContent='Esa área ya existe.';return;}
+  if(prev&&ts!==''){t=Number(ts);if(!isFinite(t)||t<=0){err.textContent='El tope debe ser un número mayor a cero, o déjalo vacío.';return;}t=r2(t);}
+  var a=areaObj(nom);
+  if(a){a.r=rs;a.prev=prev;a.t=prev?t:null;}else{areas.push({n:nom,r:rs,prev:prev,t:prev?t:null});}
+  saveJ('catped_areas',areas);show('mArea',false);
+  drawArea();totals();arDraw();
+  $('armsg').textContent=(nuevo?'Área agregada: ':'Guardado: ')+nom;
+}
+function tab(n){
+  $('tabProd').style.display=n==='prod'?'block':'none';
+  $('tabAreas').style.display=n==='areas'?'block':'none';
+  document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===n);});
+  if(n==='areas'){$('armsg').textContent='';arDraw();hDraw();}
+}
+$('arNew').addEventListener('click',function(){openArea(null);});
+$('ofSave').addEventListener('click',function(){
+  var s=$('ofTop').value.trim().replace(',','.'),v=null,m=$('ofmsg');
+  if(s!==''){v=Number(s);if(!isFinite(v)||v<=0){m.style.color='var(--red)';m.textContent='El tope debe ser un número mayor a cero, o déjalo vacío.';return;}v=r2(v);}
+  cfg.of=v;saveJ('catped_cfg',cfg);m.style.color='';m.textContent='Guardado.';ofDraw();totals();
+});
+$('arSave').addEventListener('click',saveArea);
+$('arCancel').addEventListener('click',function(){show('mArea',false);});
+$('mArea').addEventListener('keydown',function(e){if(e.key==='Enter'&&e.target.tagName!=='TEXTAREA')saveArea();});
+$('arPrev').addEventListener('change',function(){$('arTopW').style.display=this.checked?'block':'none';});
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-tab]');if(b){tab(b.getAttribute('data-tab'));return;}
+  var ed=e.target.closest('[data-aedit]');if(ed){openArea(ed.getAttribute('data-aedit'));return;}
+  var an=e.target.closest('[data-anul]');
+  if(an){
+    var id=+an.getAttribute('data-anul'),h=hist.filter(function(x){return x.id===id;})[0];
+    if(h&&confirm('¿Anular el pedido de '+h.a+' por '+money(h.t)+'? Se restará del gasto del mes.')){
+      hist=hist.filter(function(x){return x.id!==id;});saveJ('catped_hist',hist);hDraw();arDraw();totals();
+    }
+  }
+});
+
+var ADMIN_PIN='1464',isAdmin=false,editing=null,ovr={};
+try{ovr=JSON.parse(localStorage.getItem('catped_admin')||'{}')||{};}catch(e){ovr={};}
+function saveOvr(){try{localStorage.setItem('catped_admin',JSON.stringify(ovr));}catch(e){}}
+function applyOvr(){
+  Object.keys(ovr).forEach(function(c){
+    var o=ovr[c],x=find(c);
+    if(x){x.n=o.n;x.u=o.u;x.pv=o.pv;x.pr=o.pr;}
+    else if(o.nuevo){CAT.push({c:c,n:o.n,u:o.u,pv:o.pv,pr:o.pr});}
+  });
+}
+function show(id,on){var e=$(id);if(on)e.classList.add('on');else e.classList.remove('on');}
+function view(adm){$('main').style.display=adm?'none':'block';$('admin').style.display=adm?'block':'none';window.scrollTo(0,0);if(adm){admDraw();arDraw();hDraw();}}
+
+function admDraw(){
+  var q=$('asq').value.trim(),m=matches(q,''),h='';
+  if(!q){$('alist').innerHTML='<div class="empty" style="margin-top:8px">Escribe para buscar un producto.</div>';$('acnt').textContent='';return;}
+  var raw=q.split(/\s+/),show50=m.list.slice(0,50);
+  show50.forEach(function(x){
+    h+='<div class="arow"><span class="cod">'+hl(x.c,raw)+'</span><span style="font-weight:600">'+hl(x.n,raw)+'</span><span class="und">'+esc(x.u||'')+'</span><span><span class="pv" title="'+esc(x.pv)+'">'+esc(corto(x.pv))+'</span></span><span class="money">'+(x.pr==null?'<span class="sp">Sin precio</span>':money(x.pr))+'</span><button data-edit="'+esc(x.c)+'">Editar</button></div>';
+  });
+  $('alist').innerHTML=h||'<div class="empty" style="margin-top:8px">No hay resultados.</div>';
+  $('acnt').textContent=m.total>50?('Mostrando 50 de '+m.total+'. Escribe más para afinar.'):(m.total+' resultado'+(m.total===1?'':'s'));
+}
+function openForm(code){
+  editing=code;
+  var x=code?find(code):null;
+  $('pfTit').textContent=x?'Editar producto':'Nuevo producto';
+  $('pfCod').value=x?x.c:'';$('pfCod').readOnly=!!x;
+  $('pfNom').value=x?x.n:'';$('pfUni').value=x?(x.u||''):'UND';
+  $('pfPre').value=(x&&x.pr!=null)?x.pr.toFixed(2):'';
+  $('pfPrv').value=x?x.pv:'';
+  var seen={},o='';CAT.forEach(function(z){if(z.pv&&!seen[z.pv]){seen[z.pv]=1;o+='<option value="'+esc(z.pv)+'">';}});
+  $('prvList').innerHTML=o;
+  $('pfErr').textContent='';show('mProd',true);
+  (x?$('pfPre'):$('pfCod')).focus();
+}
+function nkey(s){s=String(s).toUpperCase();s=s.replace(/\(\s*[AS]\s*\)/g,'').replace(/\bLCL\.?\s*[\d.]+/g,'').replace(/\.R\d+/g,'').replace(/_\s*\d+(\.\d+)*/g,'');return s.replace(/[^A-Z0-9]/g,'');}
+function admSave(){
+  var err=$('pfErr'),isNew=!editing;
+  var cod=$('pfCod').value.trim().toUpperCase(),nom=$('pfNom').value.trim().replace(/\s+/g,' '),uni=$('pfUni').value.trim().toUpperCase(),prv=$('pfPrv').value.trim(),ps=$('pfPre').value.trim().replace(',','.'),pr=null;
+  if(!cod){err.textContent='Escribe el código.';return;}
+  if(isNew&&find(cod)){err.textContent='Ese código ya existe. Búscalo y edítalo.';return;}
+  if(!nom){err.textContent='Escribe el nombre del producto.';return;}
+  if(!uni){err.textContent='Escribe la unidad.';return;}
+  if(!prv){err.textContent='Escribe el proveedor.';return;}
+  if(ps!==''){pr=Number(ps);if(!isFinite(pr)||pr<0){err.textContent='El precio debe ser un número mayor o igual a cero.';return;}pr=Math.round(pr*100)/100;}
+  var dupe=CAT.filter(function(z){return z.c!==cod&&z.pv===prv&&nkey(z.n)===nkey(nom);})[0];
+  if(dupe){err.textContent='Este proveedor ya tiene este producto con el código '+dupe.c+'. Edita ese en vez de crear otro.';return;}
+  var x=find(cod);
+  if(x){x.n=nom;x.u=uni;x.pv=prv;x.pr=pr;}else{CAT.push({c:cod,n:nom,u:uni,pv:prv,pr:pr});}
+  ovr[cod]={n:nom,u:uni,pv:prv,pr:pr,nuevo:(isNew||(ovr[cod]&&ovr[cod].nuevo))?true:false};
+  saveOvr();show('mProd',false);prepare();drawItems();
+  $('asq').value=cod;admDraw();
+  $('amsg').textContent=(isNew?'Producto agregado: ':'Guardado: ')+cod;
+}
+function askPin(){$('pinIn').value='';$('pinErr').textContent='';show('mPin',true);$('pinIn').focus();}
+function tryPin(){
+  if($('pinIn').value===ADMIN_PIN){isAdmin=true;show('mPin',false);view(true);}
+  else{$('pinErr').textContent='PIN incorrecto.';$('pinIn').value='';$('pinIn').focus();}
+}
+$('adminBtn').addEventListener('click',function(){if(isAdmin){view(true);}else{askPin();}});
+$('pinOk').addEventListener('click',tryPin);
+$('pinCancel').addEventListener('click',function(){show('mPin',false);});
+$('pinIn').addEventListener('keydown',function(e){if(e.key==='Enter')tryPin();});
+$('admBack').addEventListener('click',function(){view(false);});
+$('admOut').addEventListener('click',function(){isAdmin=false;view(false);});
+$('asq').addEventListener('input',function(){$('amsg').textContent='';admDraw();});
+$('aNew').addEventListener('click',function(){openForm(null);});
+$('pfSave').addEventListener('click',admSave);
+$('pfCancel').addEventListener('click',function(){show('mProd',false);});
+$('mProd').addEventListener('keydown',function(e){if(e.key==='Enter')admSave();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){show('mPin',false);show('mProd',false);show('mArea',false);}});
+document.addEventListener('click',function(e){var b=e.target.closest('[data-edit]');if(b)openForm(b.getAttribute('data-edit'));});
+
+/* ===== Buscar proveedores (v1.8) ===== */
+var PROV_API='https://REEMPLAZAR.netlify.app/.netlify/functions/buscar-proveedores';
+var PV=loadJ('catped_prov',[]),pvRes=[];
+function pvUrl(u){return /^https?:\/\//i.test(u||'')?u:'';}
+function pvTel(t){return String(t||'').replace(/[^\d+]/g,'');}
+function pvWa(t){var n=pvTel(t).replace('+','');return n?'https://wa.me/'+(n.length===9?'51'+n:n):'';}
+function pvOpen(){show('mPv',true);pvSavedDraw();$('pvItems').focus();}
+function pvSavedDraw(){
+  var h='';
+  PV.forEach(function(v,i){
+    var tx=(v.tx||[]).map(function(t){return esc(t.item)+(t.monto?' (S/ '+esc(t.monto)+')':'');}).join(', ');
+    h+='<div class="pvc"><div style="flex:1"><b>'+esc(v.n)+'</b> <span class="pvt">'+esc(v.tipo||'')+'</span><br>'+esc(v.tel||'—')+' · '+esc(v.mail||'—')+(tx?'<br><span class="sp">Transacciones: '+tx+'</span>':'')+'<div class="pva">'+(v.tel?'<a href="tel:'+pvTel(v.tel)+'">Llamar</a>':'')+(pvWa(v.wa||v.tel)?'<a target="_blank" rel="noopener" href="'+pvWa(v.wa||v.tel)+'">WhatsApp</a>':'')+(v.mail?'<a href="mailto:'+esc(v.mail)+'">Correo</a>':'')+'<button data-pvtx="'+i+'">Registrar transacción</button><button data-pvdel="'+i+'">Quitar</button></div></div></div>';
+  });
+  $('pvSaved').innerHTML=h||'<div class="empty">Aún no hay proveedores guardados.</div>';
+}
+function pvHist(it){
+  var w=nz(it).split(/\s+/)[0],out=[];
+  PV.forEach(function(v){(v.tx||[]).forEach(function(t){if(w&&nz(t.item).indexOf(w)>-1&&out.indexOf(v)<0)out.push(v);});});
+  return out;
+}
+function pvSearch(){
+  var items=$('pvItems').value.split('\n').map(function(x){return x.trim();}).filter(Boolean),ciudad=$('pvCiudad').value.trim();
+  if(!items.length){$('pvMsg').textContent='Escribe al menos un ítem.';return;}
+  if(PROV_API.indexOf('REEMPLAZAR')>-1){$('pvMsg').textContent='Falta configurar PROV_API con la URL de tu función de Netlify.';return;}
+  $('pvMsg').textContent='';$('pvGo').disabled=true;$('pvOut').innerHTML='';pvRes=[];
+  var jobs=items.map(function(it,i){
+    var sec=document.createElement('div');sec.className='pvi';
+    var inCat=matches(it,'').list.slice(0,3).map(function(x){return '<div class="sp">Ya en catálogo: <b>'+esc(x.c)+'</b> · '+esc(x.n)+' · '+esc(corto(x.pv))+'</div>';}).join('');
+    var hv=pvHist(it).map(function(v){return '<div class="sp">Ya compraste algo similar a: <b>'+esc(v.n)+'</b> · '+esc(v.tel||'')+'</div>';}).join('');
+    sec.innerHTML='<h3>'+esc(it)+'</h3>'+inCat+hv+'<div class="pvw">Buscando…</div>';
+    $('pvOut').appendChild(sec);
+    return fetch(PROV_API,{method:'POST',body:JSON.stringify({item:it,ciudad:ciudad})})
+    .then(function(r){return r.json().then(function(d){if(!r.ok)throw new Error(d.error||('http '+r.status));return d;});})
+    .then(function(d){pvRes[i]=d;pvDraw(sec,i);})
+    .catch(function(e){sec.querySelector('.pvw').textContent='Error: '+e.message+' (vuelve a buscar este ítem)';});
+  });
+  Promise.all(jobs).then(function(){$('pvGo').disabled=false;});
+}
+function pvDraw(sec,i){
+  var d=pvRes[i],ps=d.proveedores||[],h='';
+  ps.forEach(function(p,k){
+    var img=pvUrl(p.imagen_url),src=pvUrl(p.precio_fuente),web=pvUrl(p.web);
+    var precio=p.precio_ref?'S/ '+esc(p.precio_ref)+' <span class="sp">(ref. '+esc(d.fecha)+(src?' · <a href="'+esc(src)+'" target="_blank" rel="noopener">fuente</a>':'')+')</span>':'<span class="sp">precio no publicado</span>';
+    h+='<div class="pvc"><img src="'+esc(img)+'" alt="" onerror="this.style.visibility=\'hidden\'"><div style="flex:1"><b>'+esc(p.nombre)+'</b><br><span class="pvt">'+esc(p.tipo||'')+'</span><span class="pvt">RUC: '+esc(p.ruc_estado||'desconocido')+(p.ruc?' '+esc(p.ruc):'')+'</span><span class="pvt">vigencia '+esc(p.vigencia||'?')+'</span><br>'+precio+'<br>'+esc(p.telefono||'—')+' · '+esc(p.correo||'—')+(web?' · <a href="'+esc(web)+'" target="_blank" rel="noopener">web</a>':'')+
+    '<div class="pva">'+(p.telefono?'<a href="tel:'+pvTel(p.telefono)+'">Llamar</a>':'')+(pvWa(p.whatsapp||p.telefono)?'<a target="_blank" rel="noopener" href="'+pvWa(p.whatsapp||p.telefono)+'?text='+encodeURIComponent('Buen día, necesito cotización de: '+d.item+'. ¿Disponibilidad y precio con factura?')+'">WhatsApp</a>':'')+(p.correo?'<a href="mailto:'+esc(p.correo)+'?subject='+encodeURIComponent('Requerimiento: '+d.item)+'">Correo</a>':'')+
+    '<button data-pvcat="'+i+','+k+'">Agregar al catálogo</button><button data-pvsave="'+i+','+k+'">Guardar proveedor</button><button data-pvmsg="'+i+','+k+'">Mensaje al homologado</button></div></div></div>';
+  });
+  sec.querySelector('.pvw').outerHTML=h||'<div class="empty">Sin resultados.</div>';
+}
+function pvPick(a){var x=a.split(',');var r=pvRes[+x[0]];return {d:r,p:r.proveedores[+x[1]]};}
+function pvSave(p,d){
+  var ex=PV.filter(function(v){return v.n===p.nombre;})[0];
+  if(ex)return ex;
+  ex={n:p.nombre,ruc:p.ruc||'',tel:p.telefono||'',wa:p.whatsapp||'',mail:p.correo||'',web:p.web||'',tipo:p.tipo||'',tx:[]};
+  PV.push(ex);saveJ('catped_prov',PV);return ex;
+}
+function pvCat(a){
+  var o=pvPick(a);show('mPv',false);openForm(null);
+  $('pfNom').value=String(o.d.item).toUpperCase();$('pfUni').value='UND';
+  $('pfPre').value=o.p.precio_ref?Number(o.p.precio_ref).toFixed(2):'';
+  $('pfPrv').value=o.p.nombre;$('pfCod').focus();
+  pvSave(o.p,o.d);
+}
+function pvMsg(a){
+  var o=pvPick(a),p=o.p,d=o.d;
+  var t='Buen día. Requerimiento de compra:\n\nÍtem: '+d.item+'\nReferencia: '+p.nombre+(p.web?' – '+p.web:'')+'\nPrecio referencial: '+(p.precio_ref?'S/ '+p.precio_ref+' ('+d.fecha+')':'no publicado')+'\n'+(p.imagen_url?'Foto: '+p.imagen_url+'\n':'')+(p.precio_fuente?'Fuente: '+p.precio_fuente+'\n':'')+'\nPor favor enviar cotización.';
+  $('pvTxt').value=t;
+  try{navigator.clipboard.writeText(t);$('pvMsg').textContent='Mensaje copiado.';}catch(e){$('pvMsg').textContent='Mensaje listo abajo; cópialo.';}
+}
+$('aProv').addEventListener('click',pvOpen);
+$('pvGo').addEventListener('click',pvSearch);
+$('pvClose').addEventListener('click',function(){show('mPv',false);});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')show('mPv',false);});
+document.addEventListener('click',function(e){
+  var b;
+  if((b=e.target.closest('[data-pvcat]')))pvCat(b.getAttribute('data-pvcat'));
+  else if((b=e.target.closest('[data-pvsave]'))){var o=pvPick(b.getAttribute('data-pvsave'));pvSave(o.p,o.d);pvSavedDraw();$('pvMsg').textContent='Proveedor guardado.';}
+  else if((b=e.target.closest('[data-pvmsg]')))pvMsg(b.getAttribute('data-pvmsg'));
+  else if((b=e.target.closest('[data-pvdel]'))){PV.splice(+b.getAttribute('data-pvdel'),1);saveJ('catped_prov',PV);pvSavedDraw();}
+  else if((b=e.target.closest('[data-pvtx]'))){
+    var v=PV[+b.getAttribute('data-pvtx')],it=prompt('Ítem comprado a '+v.n+':');if(!it)return;
+    var m=prompt('Monto de la transacción en S/ (opcional):')||'';
+    v.tx=v.tx||[];v.tx.push({f:new Date().toISOString().slice(0,10),item:it.trim(),monto:m.trim()});
+    saveJ('catped_prov',PV);pvSavedDraw();
+  }
+});
+/* ===== fin Buscar proveedores ===== */
+
+function init(){
+  $('ver').textContent='Sodexo Perú · '+VERSION;
+  $('logo').src=LOGO;
+  applyOvr();load();prepare();
+  if(sel.t==='OFICINA'){rows=rows.filter(function(r){var x=r.c?find(r.c):null;return !r.c||(x&&corto(x.pv)==='DIMERC');});}
+  drawArea();drawItems();
+  var ctl=new AbortController(),t=setTimeout(function(){ctl.abort();},6000);
+  fetch(SB_URL+'/rest/v1/cat_productos?select=codigo,nombre,unidad,proveedor,precio&order=codigo&limit=5000',{headers:{apikey:SB_KEY},signal:ctl.signal})
+  .then(function(r){clearTimeout(t);if(!r.ok)throw new Error('http '+r.status);return r.json();})
+  .then(function(d){
+    if(!Array.isArray(d)||!d.length)return;
+    CAT=d.map(function(r){return {c:String(r.codigo),n:r.nombre,u:r.unidad,pv:r.proveedor,pr:(r.precio==null?null:Number(r.precio))};});
+    fuente='Base de datos Supabase';enLinea=true;
+    prepare();drawItems();
+  }).catch(function(){});
+}
+init();
+</script>
+</body>
+</html>
