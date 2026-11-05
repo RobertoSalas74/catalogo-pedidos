@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Catálogo y pedidos v1.10 · Sodexo</title>
+<title>Catálogo y pedidos v1.11 · Sodexo</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -164,6 +164,12 @@ mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
     <button id="clr">Limpiar pantalla</button>
   </div>
   <div class="hint" id="hint"></div>
+  <div class="card" id="solBox" style="margin-top:18px">
+    <h2>¿No encontraste lo que buscas?</h2>
+    <div class="lead" style="font-size:14px">Pídelo aquí con sus datos y fotos. El administrador buscará proveedores.</div>
+    <div style="margin-top:12px"><button class="pur" id="solOpen">Solicitar un producto nuevo</button></div>
+    <div class="amsg" id="solOk"></div>
+  </div>
   <div class="src" id="src"></div>
 </div>
 
@@ -173,7 +179,7 @@ mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
     <div><h1>Modo <em>Administrador</em></h1><div class="lead">Busca un producto para editar su precio y sus datos.</div></div>
     <button id="admOut">Salir del modo administrador</button>
   </div>
-  <div class="tabs"><button class="tab on" data-tab="prod">Productos</button><button class="tab" data-tab="areas">Áreas</button></div>
+  <div class="tabs"><button class="tab on" data-tab="prod">Productos</button><button class="tab" data-tab="areas">Áreas</button><button class="tab" data-tab="sol">Solicitudes <span id="solBadge"></span></button></div>
   <div id="tabProd">
   <div class="card">
     <h2>Productos</h2>
@@ -187,6 +193,15 @@ mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
     <div id="alist"></div>
     <div class="hint" id="acnt"></div>
   </div>
+  </div>
+  <div id="tabSol" style="display:none">
+    <div class="card">
+      <h2>Solicitudes de productos</h2>
+      <div class="lead" style="font-size:14px">Productos que los solicitantes no encontraron en el catálogo.</div>
+      <div style="margin:12px 0"><select id="solFil" aria-label="Filtrar por estado"><option value="">Todas</option><option value="NUEVA">Nuevas</option><option value="BUSCANDO">Buscando</option><option value="COTIZADA">Cotizadas</option><option value="CERRADA">Cerradas</option></select></div>
+      <div class="amsg" id="solMsg"></div>
+      <div id="solList"></div>
+    </div>
   </div>
   <div id="tabAreas" style="display:none">
     <div class="card">
@@ -242,6 +257,23 @@ mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
   <div class="mact"><button id="pfCancel">Cancelar</button><button class="pur" id="pfSave">Guardar</button></div>
 </div></div>
 
+<div class="ov" id="mSol"><div class="modal" style="max-width:620px">
+  <h3>Solicitar un producto nuevo</h3>
+  <div class="lead" style="font-size:14px" id="solCtx"></div>
+  <div class="f"><label class="l" for="solNom">Nombre del producto *</label><input type="text" id="solNom" autocomplete="off"></div>
+  <div class="f"><label class="l" for="solDesc">Descripción y especificaciones * (medida, marca, modelo, potencia…)</label><textarea id="solDesc" rows="3"></textarea></div>
+  <div class="f"><label class="l" for="solFotos">Fotos * (mínimo 1, máximo 5)</label><input type="file" id="solFotos" accept="image/*" multiple><div id="solPrev" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="f"><label class="l" for="solCant">Cantidad</label><input type="text" id="solCant" inputmode="decimal" autocomplete="off"></div>
+    <div class="f"><label class="l" for="solUni">Unidad</label><input type="text" id="solUni" value="UND" autocomplete="off"></div>
+  </div>
+  <div class="f"><label class="l" for="solUso">Para qué se usa o en qué equipo</label><input type="text" id="solUso" autocomplete="off"></div>
+  <div class="f"><label class="l" for="solUrg">Urgencia</label><select id="solUrg"><option value="NORMAL">Normal</option><option value="URGENTE">Urgente</option></select></div>
+  <div class="f"><label class="l" for="solObs">Observaciones</label><textarea id="solObs" rows="2"></textarea></div>
+  <div class="err" id="solErr"></div>
+  <div class="mact"><button id="solCancel">Cancelar</button><button class="pur" id="solSend">Enviar solicitud</button></div>
+</div></div>
+
 <div class="ov" id="mPv"><div class="modal" style="max-width:920px">
   <h3>Buscar proveedores</h3>
   <div class="f"><label class="l" for="pvItems">Ítems a buscar (uno por línea)</label><textarea id="pvItems" rows="3" placeholder="filtro G4 592x592&#10;correa B-52"></textarea></div>
@@ -254,7 +286,7 @@ mark{background:#f6dcea;color:inherit;border-radius:2px;padding:0 1px;}
 </div></div>
 
 <script>
-var VERSION='v1.10';
+var VERSION='v1.11';
 var SB_URL='https://zevbmpkomkugnzokukef.supabase.co';
 var SB_KEY='sb_publishable_W10NCifkuqjvxJJv_EwivA_5iEc5Alx';
 var LOGO='data:image/png;base64,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';
@@ -588,8 +620,10 @@ function saveArea(){
 function tab(n){
   $('tabProd').style.display=n==='prod'?'block':'none';
   $('tabAreas').style.display=n==='areas'?'block':'none';
+  $('tabSol').style.display=n==='sol'?'block':'none';
   document.querySelectorAll('[data-tab]').forEach(function(b){b.classList.toggle('on',b.getAttribute('data-tab')===n);});
   if(n==='areas'){$('armsg').textContent='';arDraw();hDraw();}
+  if(n==='sol')solLoad();
 }
 $('arNew').addEventListener('click',function(){openArea(null);});
 $('ofSave').addEventListener('click',function(){
@@ -624,7 +658,7 @@ function applyOvr(){
   });
 }
 function show(id,on){var e=$(id);if(on)e.classList.add('on');else e.classList.remove('on');}
-function view(adm){$('main').style.display=adm?'none':'block';$('admin').style.display=adm?'block':'none';window.scrollTo(0,0);if(adm){admDraw();arDraw();hDraw();}}
+function view(adm){$('main').style.display=adm?'none':'block';$('admin').style.display=adm?'block':'none';window.scrollTo(0,0);if(adm){admDraw();arDraw();hDraw();solLoad();}}
 
 function admDraw(){
   var q=$('asq').value.trim(),m=matches(q,''),h='';
@@ -687,7 +721,7 @@ $('mProd').addEventListener('keydown',function(e){if(e.key==='Enter')admSave();}
 document.addEventListener('keydown',function(e){if(e.key==='Escape'){show('mPin',false);show('mProd',false);show('mArea',false);}});
 document.addEventListener('click',function(e){var b=e.target.closest('[data-edit]');if(b)openForm(b.getAttribute('data-edit'));});
 
-/* ===== Buscar proveedores (v1.10) ===== */
+/* ===== Buscar proveedores (v1.11) ===== */
 var PROV_API='https://REEMPLAZAR.netlify.app/.netlify/functions/buscar-proveedores';
 var PV=loadJ('catped_prov',[]),pvRes=[],pvPending=null;
 function pvUrl(u){return /^https?:\/\//i.test(u||'')?u:'';}
@@ -776,6 +810,120 @@ document.addEventListener('click',function(e){
   }
 });
 /* ===== fin Buscar proveedores ===== */
+
+/* ===== Solicitudes de producto (v1.11) ===== */
+var solFiles=[],solRows=[];
+function solUid(){return (window.crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now()+'-'+Math.random().toString(36).slice(2);}
+function solH(extra){var h={apikey:SB_KEY};for(var k in extra)h[k]=extra[k];return h;}
+function solOpenForm(){
+  if(selMsg()){$('solOk').textContent='Antes de solicitar, elige arriba el tipo de pedido, el área y quién solicita.';return;}
+  $('solOk').textContent='';$('solErr').textContent='';
+  $('solCtx').textContent='Tipo: '+(TIPOS[sel.t]||'—')+' · Área: '+sel.a+' · Solicita: '+(sel.r||'—');
+  show('mSol',true);$('solNom').focus();
+}
+function solResetForm(){
+  ['solNom','solDesc','solCant','solUso','solObs'].forEach(function(i){$(i).value='';});
+  $('solUni').value='UND';$('solUrg').value='NORMAL';solFiles=[];solPrevDraw();
+}
+function solPrevDraw(){
+  var h='';
+  solFiles.forEach(function(f,i){
+    h+='<div style="position:relative"><img src="'+URL.createObjectURL(f)+'" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"><button data-solrm="'+i+'" aria-label="Quitar foto" style="position:absolute;top:-6px;right:-6px;padding:0 7px;border-radius:50%">×</button></div>';
+  });
+  $('solPrev').innerHTML=h;
+}
+function solPrep(f){
+  return new Promise(function(res){
+    var img=new Image(),u=URL.createObjectURL(f);
+    img.onload=function(){
+      var k=Math.min(1,1280/Math.max(img.width,img.height)),c=document.createElement('canvas');
+      c.width=Math.round(img.width*k);c.height=Math.round(img.height*k);
+      c.getContext('2d').drawImage(img,0,0,c.width,c.height);
+      c.toBlob(function(b){URL.revokeObjectURL(u);res(b||f);},'image/jpeg',0.8);
+    };
+    img.onerror=function(){URL.revokeObjectURL(u);res(f);};
+    img.src=u;
+  });
+}
+function solUp(blob){
+  var path=new Date().toISOString().slice(0,7)+'/'+solUid()+'.jpg';
+  return fetch(SB_URL+'/storage/v1/object/solicitudes-fotos/'+path,{method:'POST',headers:solH({'Content-Type':blob.type||'image/jpeg'}),body:blob})
+  .then(function(r){if(!r.ok)throw new Error('No se pudo subir una foto (http '+r.status+'). Revisa que pese menos de 3 MB.');return SB_URL+'/storage/v1/object/public/solicitudes-fotos/'+path;});
+}
+function solSend(){
+  var err=$('solErr'),nom=$('solNom').value.trim().replace(/\s+/g,' '),desc=$('solDesc').value.trim(),cs=$('solCant').value.trim().replace(',','.'),cant=null;
+  err.textContent='';
+  if(!nom){err.textContent='Escribe el nombre del producto.';return;}
+  if(!desc){err.textContent='Escribe la descripción y especificaciones.';return;}
+  if(!solFiles.length){err.textContent='Sube al menos una foto.';return;}
+  if(cs!==''){cant=Number(cs);if(!isFinite(cant)||cant<=0){err.textContent='La cantidad debe ser un número mayor a cero.';return;}}
+  if(selMsg()){err.textContent='Elige arriba el tipo de pedido, el área y quién solicita.';return;}
+  $('solSend').disabled=true;err.textContent='Enviando…';
+  Promise.all(solFiles.map(function(f){return solPrep(f).then(solUp);}))
+  .then(function(urls){
+    var body={tipo_pedido:sel.t,area:sel.a,solicitante:sel.r||null,nombre:nom,descripcion:desc,cantidad:cant,unidad:$('solUni').value.trim().toUpperCase()||null,uso:$('solUso').value.trim()||null,urgencia:$('solUrg').value,observaciones:$('solObs').value.trim()||null,fotos:urls};
+    return fetch(SB_URL+'/rest/v1/solicitudes_producto',{method:'POST',headers:solH({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify(body)});
+  })
+  .then(function(r){if(!r.ok)throw new Error('No se pudo enviar la solicitud (http '+r.status+').');
+    show('mSol',false);solResetForm();$('solOk').textContent='Solicitud enviada. El administrador buscará proveedores.';})
+  .catch(function(e){err.textContent=e.message||'Error al enviar.';})
+  .then(function(){$('solSend').disabled=false;});
+}
+function solLoad(){
+  fetch(SB_URL+'/rest/v1/solicitudes_producto?select=*&order=created_at.desc&limit=200',{headers:solH({})})
+  .then(function(r){if(!r.ok)throw new Error('http '+r.status);return r.json();})
+  .then(function(d){solRows=Array.isArray(d)?d:[];$('solMsg').textContent='';solDraw();})
+  .catch(function(e){$('solMsg').textContent='No se pudieron cargar las solicitudes ('+e.message+').';});
+}
+function solDraw(){
+  var f=$('solFil').value,h='',n=0;
+  solRows.forEach(function(r){if(r.estado==='NUEVA')n++;});
+  $('solBadge').textContent=n?'('+n+')':'';
+  solRows.filter(function(r){return !f||r.estado===f;}).forEach(function(r){
+    var ph=(r.fotos||[]).map(function(u){u=pvUrl(u);return u?'<a href="'+esc(u)+'" target="_blank" rel="noopener"><img src="'+esc(u)+'" alt="" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border)"></a>':'';}).join('');
+    var op=['NUEVA','BUSCANDO','COTIZADA','CERRADA'].map(function(e){return '<option value="'+e+'"'+(r.estado===e?' selected':'')+'>'+e.charAt(0)+e.slice(1).toLowerCase()+'</option>';}).join('');
+    h+='<div style="border:1px solid var(--border);border-radius:12px;padding:12px;margin:10px 0;background:var(--surface)">'+
+      '<div><b>'+esc(r.nombre)+'</b>'+(r.urgencia==='URGENTE'?' <span style="color:var(--red);font-weight:700">URGENTE</span>':'')+' <span class="sp">'+esc(fmtF(r.created_at))+'</span></div>'+
+      '<div class="sp">'+esc(TIPOS[r.tipo_pedido]||r.tipo_pedido||'')+' · '+esc(r.area||'')+' · '+esc(r.solicitante||'sin solicitante')+'</div>'+
+      '<div style="margin:8px 0">'+esc(r.descripcion)+'</div>'+
+      (r.cantidad!=null?'<div class="sp">Cantidad: '+esc(r.cantidad)+' '+esc(r.unidad||'')+'</div>':'')+
+      (r.uso?'<div class="sp">Uso: '+esc(r.uso)+'</div>':'')+
+      (r.observaciones?'<div class="sp">Observaciones: '+esc(r.observaciones)+'</div>':'')+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">'+ph+'</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select data-sest="'+esc(r.id)+'" aria-label="Estado">'+op+'</select><input type="text" data-snota="'+esc(r.id)+'" value="'+esc(r.nota_admin||'')+'" placeholder="Nota (opcional)" style="flex:1;min-width:160px"><button class="pur" data-ssave="'+esc(r.id)+'">Guardar</button><button data-sbusca="'+esc(r.id)+'">🔎 Buscar proveedores</button></div></div>';
+  });
+  $('solList').innerHTML=h||'<div class="empty">No hay solicitudes.</div>';
+}
+function solPatch(id,est,nota){
+  return fetch(SB_URL+'/rest/v1/solicitudes_producto?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:solH({'Content-Type':'application/json',Prefer:'return=minimal'}),body:JSON.stringify({estado:est,nota_admin:nota||null,updated_at:new Date().toISOString()})})
+  .then(function(r){if(!r.ok)throw new Error('http '+r.status);});
+}
+$('solOpen').addEventListener('click',solOpenForm);
+$('solCancel').addEventListener('click',function(){show('mSol',false);});
+$('solSend').addEventListener('click',solSend);
+$('solFil').addEventListener('change',solDraw);
+$('solFotos').addEventListener('change',function(){
+  Array.prototype.slice.call(this.files).forEach(function(f){if(solFiles.length<5)solFiles.push(f);});
+  this.value='';solPrevDraw();
+});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')show('mSol',false);});
+document.addEventListener('click',function(e){
+  var b;
+  if((b=e.target.closest('[data-solrm]'))){solFiles.splice(+b.getAttribute('data-solrm'),1);solPrevDraw();}
+  else if((b=e.target.closest('[data-ssave]'))){
+    var id=b.getAttribute('data-ssave');
+    solPatch(id,document.querySelector('[data-sest="'+id+'"]').value,document.querySelector('[data-snota="'+id+'"]').value.trim())
+    .then(function(){$('solMsg').textContent='Guardado.';solLoad();}).catch(function(x){$('solMsg').textContent='No se pudo guardar ('+x.message+').';});
+  }
+  else if((b=e.target.closest('[data-sbusca]'))){
+    var id2=b.getAttribute('data-sbusca'),r=solRows.filter(function(x){return x.id===id2;})[0];
+    if(!r)return;
+    pvOpen();$('pvItems').value=r.nombre+(r.descripcion?' '+r.descripcion.slice(0,100):'');
+    if(r.estado==='NUEVA')solPatch(id2,'BUSCANDO',r.nota_admin).then(solLoad).catch(function(){});
+  }
+});
+/* ===== fin Solicitudes de producto ===== */
+
 
 function init(){
   $('ver').textContent='Sodexo Perú · '+VERSION;
